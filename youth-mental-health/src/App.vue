@@ -1,26 +1,20 @@
-<script setup></script>
-
+<script setup>
+import BHeader from './components/BHeader.vue'
+</script>
 <!-- src/App.vue -->
 <template>
-  <header style="padding:12px; border-bottom:1px solid #eee; display:flex; gap:16px; align-items:center;">
-    <!-- Logo -->
-    <strong style="margin-right:auto;">YouthConnect</strong>
+  <div class="d-flex flex-column min-vh-100">
+    <BHeader />
 
-    <!-- Navigation -->
-    <router-link to="/">Home</router-link>
-    <router-link to="/about">About</router-link>
-    <router-link to="/resources">Resources</router-link>
-    <router-link to="/events">Events</router-link>
-    <router-link to="/help">Help</router-link>
-    <router-link to="/contact">Contact</router-link>
-  </header>
+    <main class="container py-4">
+      <router-view />
+    </main>
 
-  <main>
-    <router-view />
-  </main>
-
-  <footer style="padding:12px; border-top:1px solid #eee; margin-top:40px;">
-    <small>© 2025 YouthConnect | <a href="#">Privacy</a></small>
-  </footer>
+    <footer class="mt-auto py-3 border-top">
+      <div class="container">
+        <small>© 2025 YouthConnect | <a href="#">Privacy</a></small>
+      </div>
+    </footer>
+  </div>
 </template>
 <style scoped></style>
