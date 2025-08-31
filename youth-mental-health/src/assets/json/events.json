@@ -1,0 +1,37 @@
+[
+    {
+      "id": "e1",
+      "title": "Study Stress Workshop",
+      "datetime": "2025-09-18T18:00:00+10:00",
+      "mode": "Online",
+      "location": "Zoom"
+    },
+    {
+      "id": "e2",
+      "title": "Mindfulness in the Park",
+      "datetime": "2025-09-22T08:30:00+10:00",
+      "mode": "In-person",
+      "location": "Flagstaff Gardens, Melbourne"
+    },
+    {
+      "id": "e3",
+      "title": "Sleep Hygiene 101",
+      "datetime": "2025-10-02T19:00:00+10:00",
+      "mode": "Online",
+      "location": "Google Meet"
+    },
+    {
+      "id": "e4",
+      "title": "Coping with Exam Pressure",
+      "datetime": "2025-10-10T17:00:00+10:00",
+      "mode": "In-person",
+      "location": "Monash University, Clayton Campus"
+    },
+    {
+      "id": "e5",
+      "title": "Yoga & Wellbeing Morning",
+      "datetime": "2025-10-20T07:30:00+10:00",
+      "mode": "In-person",
+      "location": "St Kilda Beach, Melbourne"
+    }
+  ]

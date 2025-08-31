@@ -5,8 +5,8 @@ const formData = ref({
   firstName: '',
   lastName: '',
   email: '',
-  phone: '', // optional
-  contact: 'email', // 'email' | 'phone'
+  phone: '',
+  contact: 'email',
   topic: '',
   details: '',
   consent: false,
@@ -16,7 +16,7 @@ const errors = ref({
   firstName: null,
   lastName: null,
   email: null,
-  phone: null, // only validate if provided
+  phone: null,
   topic: null,
   details: null,
   consent: null,
@@ -24,7 +24,6 @@ const errors = ref({
 
 const showSuccess = ref(false)
 
-// --- validators ---
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
 
@@ -105,10 +104,8 @@ function submitForm() {
     errors.value.details ||
     errors.value.consent
   ) {
-    // stop if any error exists
     return
   }
-  // simulate success
   showSuccess.value = true
   setTimeout(() => (showSuccess.value = false), 3500)
   clearForm()
