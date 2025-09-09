@@ -1,5 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
+import { isAuthenticated } from "../auth";
+
 
 const Home = () => import('../pages/HomePage.vue')
 const Resources = () => import('../pages/ResourcesPage.vue')
@@ -7,18 +9,30 @@ const Events = () => import('../pages/EventsPage.vue')
 const Help = () => import('../pages/HelpPage.vue')
 const About = () => import('../pages/AboutPage.vue')
 const Contact = () => import('../pages/ContactPage.vue')
+const Login = () => import('../pages/LoginPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
+  linkActiveClass: 'active',
+  linkExactActiveClass: 'active',
   routes: [
-    { path: '/', component: Home },
-    { path: '/resources', component: Resources },
-    { path: '/events', component: Events },
-    { path: '/help', component: Help },
-    { path: '/about', component: About },
-    { path: '/contact', component: Contact }
+    { path: '/', component: Home, name: 'Home', meta: {requiresAuth: true} },
+    { path: '/resources', component: Resources, name: 'Resources', meta: {requiresAuth: true} },
+    { path: '/events', component: Events, name: 'Events', meta: {requiresAuth: true} },
+    { path: '/help', component: Help, name: 'Help', meta: {requiresAuth: true} },
+    { path: '/about', component: About, name: 'About', meta: {requiresAuth: true} },
+    { path: '/contact', component: Contact, name: 'Contact', meta: {requiresAuth: true} },
+    {path: '/login', component: Login, name: 'Login'}
   ],
   scrollBehavior: () => ({ top: 0 }) // ensures scroll to top on navigation
+})
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth && !isAuthenticated.value) {
+    next({ name: 'Login' })
+  } else {
+    next()
+  }
 })
 
 export default router

@@ -1,7 +1,11 @@
 <script setup>
-import { useRoute } from 'vue-router'
-const route = useRoute()
-const isActive = (path) => route.path === path || route.path.startsWith(path + '/')
+import { useRouter } from 'vue-router'
+import { isAuthenticated, logout } from '@/auth'
+const router = useRouter()
+function handleLogout() {
+  logout()
+  router.push('/login')
+}
 </script>
 
 <template>
@@ -15,23 +19,26 @@ const isActive = (path) => route.path === path || route.path.startsWith(path + '
 
         <ul class="nav nav-pills flex-wrap justify-content-center ms-md-auto">
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/') }]" to="/">Home</RouterLink>
+            <RouterLink class="nav-link" to="/">Home</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/resources') }]" to="/resources">Resources</RouterLink>
+            <RouterLink class="nav-link" to="/resources">Resources</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/events') }]" to="/events">Events</RouterLink>
+            <RouterLink class="nav-link" to="/events">Events</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/help') }]" to="/help">Get Help</RouterLink>
+            <RouterLink class="nav-link" to="/help">Get Help</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/contact') }]" to="/contact">Contact</RouterLink>
+            <RouterLink class="nav-link" to="/contact">Contact</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink :class="['nav-link', { active: isActive('/about') }]" to="/about">About</RouterLink>
+            <RouterLink class="nav-link" to="/about">About</RouterLink>
           </li>
+          <li class="nav-item ms-3">
+          <button v-if="isAuthenticated" class="btn btn-outline-danger btn-sm" @click="handleLogout">Logout</button>
+        </li>
         </ul>
       </header>
     </div>
