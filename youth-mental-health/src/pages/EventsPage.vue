@@ -3,6 +3,15 @@ import { ref, computed, watch } from 'vue'
 import eventsData from '../assets/json/events.json'
 import { currentUser } from '@/auth'
 
+function sanitize (s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function useLocalStorageReactive(key, initialValue) {
   const raw = localStorage.getItem(key)
   const state = ref(raw ? JSON.parse(raw) : initialValue)
@@ -57,11 +66,11 @@ function addEvent() {
   if (!validateAdminForm()) return
   const ev = {
     id: Date.now(),
-    title: newEvent.value.title.trim(),
-    description: newEvent.value.description.trim(),
+    title: sanitize(newEvent.value.title.trim()),
+    description: sanitize(newEvent.value.description.trim()),
     datetime: newEvent.value.datetime.trim(),
     mode: newEvent.value.mode.trim(),
-    location: newEvent.value.location.trim()
+    location: sanitize(newEvent.value.location.trim())
   }
   events.value.push(ev)
   localStorage.setItem('events_v1', JSON.stringify(events.value))

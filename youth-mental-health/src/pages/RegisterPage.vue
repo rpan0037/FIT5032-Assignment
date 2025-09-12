@@ -59,7 +59,17 @@ const router = useRouter()
 const form = ref({ name: '', email: '', password: '' })
 const errors = ref({ name: '', email: '', password: '' })
 const formError = ref('')
+
 const success = ref(false)
+
+function sanitize (s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 function validateName() {
   errors.value.name = form.value.name.length < 2 ? 'Please enter at least 2 characters.' : ''
@@ -93,8 +103,8 @@ function onSubmit() {
 
   const newUser = {
     id: Date.now(),
-    name: form.value.name,
-    email: form.value.email,
+    name: sanitize(form.value.name),
+    email: sanitize(form.value.email),
     password: form.value.password,
     role: "user"
   }

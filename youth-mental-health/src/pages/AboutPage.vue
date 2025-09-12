@@ -95,5 +95,4 @@ const recentComments = computed(() => {
 </script>
 
 <style scoped>
-/* Minimal: Bootstrap handles layout */
 </style>

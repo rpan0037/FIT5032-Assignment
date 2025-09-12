@@ -7,11 +7,21 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+
 const error = ref('')
+
+function sanitize (s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 const onSubmit = () => {
   error.value = ''
-  const ok = login(email.value.trim(), password.value)
+  const ok = login(sanitize(email.value.trim()), password.value)
   if (ok) {
     router.push('/')
   } else {

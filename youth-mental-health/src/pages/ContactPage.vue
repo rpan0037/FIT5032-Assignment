@@ -61,7 +61,17 @@
 </template>
 
 <script setup>
+
 import { ref } from 'vue'
+
+function sanitize (s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 const rating = ref({ score: '', comment: '' })
 const errors = ref({ score: '' })
@@ -79,7 +89,7 @@ function onSubmit() {
 
   const newEntry = {
     rating: rating.value.score,
-    feedback: rating.value.comment
+    feedback: sanitize(rating.value.comment)
   }
   const existing = JSON.parse(localStorage.getItem('ratings_v1') || '[]')
   existing.push(newEntry)
@@ -96,5 +106,4 @@ function clearForm() {
 </script>
 
 <style scoped>
-/* Keep it minimal; Bootstrap handles most styling */
 </style>
