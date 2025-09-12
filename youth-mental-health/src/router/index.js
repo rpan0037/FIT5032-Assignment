@@ -10,6 +10,7 @@ const Help = () => import('../pages/HelpPage.vue')
 const About = () => import('../pages/AboutPage.vue')
 const Contact = () => import('../pages/ContactPage.vue')
 const Login = () => import('../pages/LoginPage.vue')
+const Register = () => import('../pages/RegisterPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -22,7 +23,8 @@ const router = createRouter({
     { path: '/help', component: Help, name: 'Help', meta: {requiresAuth: true} },
     { path: '/about', component: About, name: 'About', meta: {requiresAuth: true} },
     { path: '/contact', component: Contact, name: 'Contact', meta: {requiresAuth: true} },
-    {path: '/login', component: Login, name: 'Login'}
+    {path: '/login', component: Login, name: 'Login'},
+    { path: '/register', component: Register, name: 'Register', meta: { requiresAuth: false } }
   ],
   scrollBehavior: () => ({ top: 0 }) // ensures scroll to top on navigation
 })

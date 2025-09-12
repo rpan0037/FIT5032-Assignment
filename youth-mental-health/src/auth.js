@@ -10,7 +10,7 @@ export function login(username, password) {
     u => u.email.toLowerCase() === username.toLowerCase() && u.password === password
   )
   if (user) {
-    currentUser.value = { id: user.id, name: user.name, email: user.email }
+    currentUser.value = { id: user.id, name: user.name, email: user.email, role: user.role }
     localStorage.setItem('currentUser', JSON.stringify(currentUser.value))
     isAuthenticated.value = true
     return true

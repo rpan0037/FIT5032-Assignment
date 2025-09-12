@@ -42,14 +42,16 @@ const onSubmit = () => {
 
           <div v-if="error" class="text-danger mb-3">{{ error }}</div>
 
-          <div class="d-grid">
+          <div class="d-grid mb-2">
             <button type="submit" class="btn btn-primary">Log in</button>
+          </div>
+          <div class="d-grid">
+            <RouterLink to="/register" class="btn btn-outline-secondary">Register</RouterLink>
           </div>
         </form>
 
-        <div class="mt-3 small text-muted">
-          Demo creds: <code>admin@example.com</code> / <code>Admin@123</code><br>
-          <span class="d-block">or <code>emily@example.com</code> / <code>Emily2025</code></span>
+        <div class="mt-3 small text-muted text-center">
+          Don’t have an account yet? Please register to get started.
         </div>
       </div>
     </div>
