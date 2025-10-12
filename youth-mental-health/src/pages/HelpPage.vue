@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { currentUser } from '@/auth.js'
 
 const formData = ref({
   firstName: '',
@@ -23,6 +25,8 @@ const errors = ref({
 })
 
 const showSuccess = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
 
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
@@ -93,7 +97,8 @@ function clearForm() {
   errors.value = { firstName: null, lastName: null, email: null, phone: null, topic: null, details: null, consent: null }
 }
 
-function submitForm() {
+async function submitForm() {
+  // run validations
   validateAllOnBlur()
   if (
     errors.value.firstName ||
@@ -106,9 +111,40 @@ function submitForm() {
   ) {
     return
   }
-  showSuccess.value = true
-  setTimeout(() => (showSuccess.value = false), 3500)
-  clearForm()
+
+  if (submitting.value) return
+  submitting.value = true
+  submitError.value = ''
+
+  try {
+    const db = getFirestore()
+    const userInfo = currentUser?.value
+      ? { uid: currentUser.value.id || currentUser.value.uid, email: currentUser.value.email, name: currentUser.value.name || '' }
+      : null
+
+    await addDoc(collection(db, 'help-requests'), {
+      firstName: formData.value.firstName.trim(),
+      lastName: formData.value.lastName.trim(),
+      email: formData.value.email.trim(),
+      phone: formData.value.phone.trim(),
+      preferredContact: formData.value.contact,
+      topic: formData.value.topic,
+      details: formData.value.details.trim(),
+      consent: !!formData.value.consent,
+      status: 'new',
+      createdAt: serverTimestamp(),
+      user: userInfo
+    })
+
+    showSuccess.value = true
+    setTimeout(() => (showSuccess.value = false), 3500)
+    clearForm()
+  } catch (e) {
+    console.error('Failed to submit help request', e)
+    submitError.value = 'Sorry, we could not submit your request. Please try again.'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -123,6 +159,7 @@ function submitForm() {
           <div v-if="showSuccess" class="alert alert-success" role="alert">
             Query received — we’ll get back to you shortly.
           </div>
+          <div v-if="submitError" class="alert alert-danger" role="alert" aria-live="polite">{{ submitError }}</div>
 
           <form @submit.prevent="submitForm">
             <!-- Row: First / Last Name -->
@@ -214,7 +251,7 @@ function submitForm() {
 
             <!-- Actions -->
             <div class="text-center">
-              <button type="submit" class="btn btn-primary me-2">Submit</button>
+              <button type="submit" class="btn btn-primary me-2" :disabled="submitting">{{ submitting ? 'Submitting..' : 'Submit' }}</button>
               <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
             </div>
           </form>

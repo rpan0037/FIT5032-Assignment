@@ -9,6 +9,7 @@ const email = ref('')
 const password = ref('')
 
 const error = ref('')
+const submitting = ref(false)
 
 function sanitize (s) {
   return String(s ?? '')
@@ -19,13 +20,46 @@ function sanitize (s) {
     .replace(/'/g, '&#39;')
 }
 
-const onSubmit = () => {
+const onSubmit = async () => {
+  if (submitting.value) return
   error.value = ''
-  const ok = login(sanitize(email.value.trim()), password.value)
-  if (ok) {
-    router.push('/')
-  } else {
-    error.value = 'Invalid email or password.'
+
+  const emailTrimmed = sanitize(email.value.trim())
+  if (!emailTrimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
+    error.value = 'Please enter a valid email address.'
+    return
+  }
+  if (!password.value) {
+    error.value = 'Please enter your password.'
+    return
+  }
+
+  submitting.value = true
+  try {
+    const ok = await login(emailTrimmed, password.value)
+    if (ok === true) {
+      router.push('/')
+    } else if (typeof ok === 'string') {
+      switch (ok) {
+        case 'auth/user-not-found':
+          error.value = 'No account found with that email.'; break
+        case 'auth/wrong-password':
+          error.value = 'Incorrect password.'; break
+        case 'auth/invalid-credential':
+          error.value = 'Invalid email or password.'; break
+        case 'auth/too-many-requests':
+          error.value = 'Too many attempts. Please try again later.'; break
+        default:
+          error.value = 'Login failed. Please try again.'
+      }
+    } else {
+      error.value = 'Invalid email or password.'
+    }
+  } catch (e) {
+    console.error('Login error', e)
+    error.value = 'Could not log in. Please try again.'
+  } finally {
+    submitting.value = false
   }
 }
 </script>
@@ -50,10 +84,10 @@ const onSubmit = () => {
             <input id="password" class="form-control" type="password" v-model="password" autocomplete="current-password" />
           </div>
 
-          <div v-if="error" class="text-danger mb-3">{{ error }}</div>
+          <div v-if="error" class="text-danger mb-3" role="alert" aria-live="polite">{{ error }}</div>
 
           <div class="d-grid mb-2">
-            <button type="submit" class="btn btn-primary">Log in</button>
+            <button type="submit" class="btn btn-primary" :disabled="submitting">{{ submitting ? 'Logging in…' : 'Log in' }}</button>
           </div>
           <div class="d-grid">
             <RouterLink to="/register" class="btn btn-outline-secondary">Register</RouterLink>
