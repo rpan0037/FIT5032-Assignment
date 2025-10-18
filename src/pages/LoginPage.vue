@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/auth'
 
@@ -8,10 +8,16 @@ const router = useRouter()
 const email = ref('')
 const password = ref('')
 
+const emailRef = ref(null)
+const passwordRef = ref(null)
+const errorRef = ref(null)
+const emailError = ref('')
+const passwordError = ref('')
+
 const error = ref('')
 const submitting = ref(false)
 
-function sanitize (s) {
+function sanitize(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -23,14 +29,18 @@ function sanitize (s) {
 const onSubmit = async () => {
   if (submitting.value) return
   error.value = ''
+  emailError.value = ''
+  passwordError.value = ''
 
   const emailTrimmed = sanitize(email.value.trim())
   if (!emailTrimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailTrimmed)) {
-    error.value = 'Please enter a valid email address.'
+    emailError.value = 'Please enter a valid email address.'
+    nextTick(() => emailRef.value?.focus())
     return
   }
   if (!password.value) {
-    error.value = 'Please enter your password.'
+    passwordError.value = 'Please enter your password.'
+    nextTick(() => passwordRef.value?.focus())
     return
   }
 
@@ -42,22 +52,33 @@ const onSubmit = async () => {
     } else if (typeof ok === 'string') {
       switch (ok) {
         case 'auth/user-not-found':
-          error.value = 'No account found with that email.'; break
+          emailError.value = 'No account found with that email.'
+          nextTick(() => emailRef.value?.focus())
+          break
         case 'auth/wrong-password':
-          error.value = 'Incorrect password.'; break
+          passwordError.value = 'Incorrect password.'
+          nextTick(() => passwordRef.value?.focus())
+          break
         case 'auth/invalid-credential':
-          error.value = 'Invalid email or password.'; break
+          error.value = 'Invalid email or password.'
+          nextTick(() => errorRef.value?.focus())
+          break
         case 'auth/too-many-requests':
-          error.value = 'Too many attempts. Please try again later.'; break
+          error.value = 'Too many attempts. Please try again later.'
+          nextTick(() => errorRef.value?.focus())
+          break
         default:
           error.value = 'Login failed. Please try again.'
+          nextTick(() => errorRef.value?.focus())
       }
     } else {
       error.value = 'Invalid email or password.'
+      nextTick(() => errorRef.value?.focus())
     }
   } catch (e) {
     console.error('Login error', e)
     error.value = 'Could not log in. Please try again.'
+    nextTick(() => errorRef.value?.focus())
   } finally {
     submitting.value = false
   }
@@ -76,18 +97,26 @@ const onSubmit = async () => {
         <form @submit.prevent="onSubmit">
           <div class="mb-3">
             <label class="form-label" for="email">Email</label>
-            <input id="email" class="form-control" type="email" v-model="email" autocomplete="email" />
+            <input id="email" ref="emailRef" class="form-control" type="email" v-model="email" autocomplete="email"
+              required :aria-invalid="emailError ? 'true' : 'false'"
+              :aria-describedby="emailError ? 'err-email' : null" />
+            <div v-if="emailError" id="err-email" class="text-danger small mt-1" role="alert">{{ emailError }}</div>
           </div>
 
           <div class="mb-3">
             <label class="form-label" for="password">Password</label>
-            <input id="password" class="form-control" type="password" v-model="password" autocomplete="current-password" />
+            <input id="password" ref="passwordRef" class="form-control" type="password" v-model="password"
+              autocomplete="current-password" required :aria-invalid="passwordError ? 'true' : 'false'"
+              :aria-describedby="passwordError ? 'err-password' : null" />
+            <div v-if="passwordError" id="err-password" class="text-danger small mt-1" role="alert">{{ passwordError }}
+            </div>
           </div>
 
-          <div v-if="error" class="text-danger mb-3" role="alert" aria-live="polite">{{ error }}</div>
+          <div v-if="error" class="text-danger mb-3" role="alert" aria-live="assertive" tabindex="-1" ref="errorRef">{{
+            error }}</div>
 
           <div class="d-grid mb-2">
-            <button type="submit" class="btn btn-primary" :disabled="submitting">{{ submitting ? 'Logging in…' : 'Log in' }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="submitting">{{ submitting ? 'Logging in…' : 'Login' }}</button>
           </div>
           <div class="d-grid">
             <RouterLink to="/register" class="btn btn-outline-secondary">Register</RouterLink>

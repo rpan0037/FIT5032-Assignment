@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { currentUser } from '@/auth.js'
 
@@ -27,6 +27,15 @@ const errors = ref({
 const showSuccess = ref(false)
 const submitting = ref(false)
 const submitError = ref('')
+
+const firstNameRef = ref(null)
+const lastNameRef = ref(null)
+const emailRef = ref(null)
+const phoneRef = ref(null)
+const topicRef = ref(null)
+const detailsRef = ref(null)
+const consentRef = ref(null)
+const successRef = ref(null)
 
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
@@ -133,6 +142,13 @@ async function submitForm() {
     errors.value.details ||
     errors.value.consent
   ) {
+    if (errors.value.firstName) { firstNameRef.value?.focus(); return }
+    if (errors.value.lastName) { lastNameRef.value?.focus(); return }
+    if (errors.value.email) { emailRef.value?.focus(); return }
+    if (errors.value.phone) { phoneRef.value?.focus(); return }
+    if (errors.value.topic) { topicRef.value?.focus(); return }
+    if (errors.value.details) { detailsRef.value?.focus(); return }
+    if (errors.value.consent) { consentRef.value?.focus(); return }
     return
   }
 
@@ -160,7 +176,6 @@ async function submitForm() {
       user: userInfo
     })
 
-    // Send two emails via Cloud Function: admin notification + user acknowledgement
     try {
       const fullName = `${formData.value.firstName.trim()} ${formData.value.lastName.trim()}`.trim();
       const adminInbox = "rpandia99@gmail.com"; // update if needed
@@ -225,6 +240,7 @@ async function submitForm() {
     }
 
     showSuccess.value = true
+    nextTick(() => { successRef.value?.focus() })
     setTimeout(() => (showSuccess.value = false), 3500)
     clearForm()
   } catch (e) {
@@ -244,7 +260,8 @@ async function submitForm() {
           <h1 class="h3 text-center mb-3">Get Help</h1>
           <p class="text-muted text-center mb-4">Tell us a bit about what you need. We’ll get back to you shortly.</p>
 
-          <div v-if="showSuccess" class="alert alert-success" role="alert">
+          <div v-if="showSuccess" class="alert alert-success" role="alert" aria-live="assertive" tabindex="-1"
+            ref="successRef">
             Query received — we’ll get back to you shortly.
           </div>
           <div v-if="submitError" class="alert alert-danger" role="alert" aria-live="polite">{{ submitError }}</div>
@@ -254,16 +271,22 @@ async function submitForm() {
             <div class="row mb-3">
               <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
                 <label for="firstName" class="form-label">First name</label>
-                <input id="firstName" type="text" class="form-control" v-model.trim="formData.firstName"
-                  @blur="() => validateFirstName(true)" @input="() => validateFirstName(false)" />
-                <div v-if="errors.firstName" class="text-danger">{{ errors.firstName }}</div>
+                <input id="firstName" ref="firstNameRef" type="text" class="form-control"
+                  v-model.trim="formData.firstName" @blur="() => validateFirstName(true)"
+                  @input="() => validateFirstName(false)" required :aria-invalid="errors.firstName ? 'true' : 'false'"
+                  :aria-describedby="errors.firstName ? 'err-firstName' : null" />
+                <div v-if="errors.firstName" id="err-firstName" class="text-danger" role="alert">{{ errors.firstName }}
+                </div>
               </div>
 
               <div class="col-md-6 col-sm-12">
                 <label for="lastName" class="form-label">Last name</label>
-                <input id="lastName" type="text" class="form-control" v-model.trim="formData.lastName"
-                  @blur="() => validateLastName(true)" @input="() => validateLastName(false)" />
-                <div v-if="errors.lastName" class="text-danger">{{ errors.lastName }}</div>
+                <input id="lastName" ref="lastNameRef" type="text" class="form-control" v-model.trim="formData.lastName"
+                  @blur="() => validateLastName(true)" @input="() => validateLastName(false)" required
+                  :aria-invalid="errors.lastName ? 'true' : 'false'"
+                  :aria-describedby="errors.lastName ? 'err-lastName' : null" />
+                <div v-if="errors.lastName" id="err-lastName" class="text-danger" role="alert">{{ errors.lastName }}
+                </div>
               </div>
             </div>
 
@@ -271,17 +294,20 @@ async function submitForm() {
             <div class="row mb-3">
               <div class="col-md-6 col-sm-12 mb-3 mb-md-0">
                 <label for="email" class="form-label">Email</label>
-                <input id="email" type="email" class="form-control" v-model.trim="formData.email"
-                  @blur="() => validateEmail(true)" @input="() => validateEmail(false)" />
-                <div v-if="errors.email" class="text-danger">{{ errors.email }}</div>
+                <input id="email" ref="emailRef" type="email" class="form-control" v-model.trim="formData.email"
+                  @blur="() => validateEmail(true)" @input="() => validateEmail(false)" required
+                  :aria-invalid="errors.email ? 'true' : 'false'"
+                  :aria-describedby="errors.email ? 'err-email' : null" />
+                <div v-if="errors.email" id="err-email" class="text-danger" role="alert">{{ errors.email }}</div>
               </div>
 
               <div class="col-md-6 col-sm-12">
                 <label for="phone" class="form-label">Phone <span class="text-muted">(optional)</span></label>
-                <input id="phone" type="tel" class="form-control" v-model.trim="formData.phone"
-                  @blur="() => validatePhone(true)" @input="() => validatePhone(false)"
-                  placeholder="e.g. 0412 345 678" />
-                <div v-if="errors.phone" class="text-danger">{{ errors.phone }}</div>
+                <input id="phone" ref="phoneRef" type="tel" class="form-control" v-model.trim="formData.phone"
+                  @blur="() => validatePhone(true)" @input="() => validatePhone(false)" placeholder="e.g. 0412 345 678"
+                  :aria-invalid="errors.phone ? 'true' : 'false'"
+                  :aria-describedby="errors.phone ? 'err-phone' : null" />
+                <div v-if="errors.phone" id="err-phone" class="text-danger" role="alert">{{ errors.phone }}</div>
               </div>
             </div>
 
@@ -296,15 +322,16 @@ async function submitForm() {
                 </div>
                 <div class="form-check form-check-inline">
                   <input class="form-check-input" type="radio" id="contact-phone" value="phone"
-                    v-model="formData.contact">
+                    v-model="formData.contact" ref="phoneRef">
                   <label class="form-check-label" for="contact-phone">Phone</label>
                 </div>
               </div>
 
               <div class="col-md-6 col-sm-12">
                 <label for="topic" class="form-label">Topic</label>
-                <select id="topic" class="form-select" v-model="formData.topic" @blur="() => validateTopic(true)"
-                  @change="() => validateTopic(false)">
+                <select id="topic" ref="topicRef" class="form-select" v-model="formData.topic"
+                  @blur="() => validateTopic(true)" @change="() => validateTopic(false)" required
+                  :aria-invalid="errors.topic ? 'true' : 'false'" :aria-describedby="errors.topic ? 'err-topic' : null">
                   <option value="">-- Choose a topic --</option>
                   <option value="anxiety">Anxiety</option>
                   <option value="low-mood">Low mood / depression</option>
@@ -312,34 +339,37 @@ async function submitForm() {
                   <option value="sleep">Sleep</option>
                   <option value="other">Other</option>
                 </select>
-                <div v-if="errors.topic" class="text-danger">{{ errors.topic }}</div>
+                <div v-if="errors.topic" id="err-topic" class="text-danger" role="alert">{{ errors.topic }}</div>
               </div>
             </div>
 
             <!-- Details -->
             <div class="mb-3">
               <label for="details" class="form-label">Details</label>
-              <textarea id="details" rows="4" class="form-control" v-model.trim="formData.details"
-                @blur="() => validateDetails(true)" @input="() => validateDetails(false)"></textarea>
-              <div v-if="errors.details" class="text-danger">{{ errors.details }}</div>
-              <div class="form-text">Please include enough context (min 20 characters).</div>
+              <textarea id="details" ref="detailsRef" rows="4" class="form-control" v-model.trim="formData.details"
+                @blur="() => validateDetails(true)" @input="() => validateDetails(false)" required
+                aria-describedby="details-help" :aria-invalid="errors.details ? 'true' : 'false'"></textarea>
+              <div v-if="errors.details" id="err-details" class="text-danger" role="alert">{{ errors.details }}</div>
+              <div id="details-help" class="form-text">Please include enough context (min 20 characters).</div>
             </div>
 
             <!-- Consent -->
             <div class="mb-3">
               <div class="form-check">
-                <input id="consent" type="checkbox" class="form-check-input" v-model="formData.consent"
-                  @change="() => validateConsent(true)" />
+                <input id="consent" ref="consentRef" type="checkbox" class="form-check-input" v-model="formData.consent"
+                  @change="() => validateConsent(true)" required :aria-invalid="errors.consent ? 'true' : 'false'"
+                  :aria-describedby="errors.consent ? 'err-consent' : null" />
                 <label class="form-check-label" for="consent">
                   I consent to YouthConnect contacting me about this request.
                 </label>
               </div>
-              <div v-if="errors.consent" class="text-danger">{{ errors.consent }}</div>
+              <div v-if="errors.consent" id="err-consent" class="text-danger" role="alert">{{ errors.consent }}</div>
             </div>
 
             <!-- Actions -->
             <div class="text-center">
-              <button type="submit" class="btn btn-primary me-2" :disabled="submitting">{{ submitting ? 'Submitting..' : 'Submit' }}</button>
+              <button type="submit" class="btn btn-primary me-2" :disabled="submitting">{{ submitting ? 'Submitting..' :
+                'Submit' }}</button>
               <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
             </div>
           </form>
