@@ -7,14 +7,6 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import { currentUser } from '@/auth'
 import { getFirestore, collection, query, where, limit, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp, getDocs, orderBy } from 'firebase/firestore'
 
-function sanitize(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
 
 const db = getFirestore()
 
@@ -236,44 +228,6 @@ const registered = computed(() => events.value.filter(e => isRegistered(e.id)))
 
 const isAdmin = computed(() => (currentUser.value && currentUser.value.role === 'admin'))
 
-const newEvent = ref({
-  title: '',
-  description: '',
-  datetime: '',
-  mode: 'Online',
-  location: ''
-})
-const errors = ref({ title: '', datetime: '', mode: '', location: '' })
-
-function validateAdminForm() {
-  errors.value.title = newEvent.value.title.trim().length ? '' : 'Title is required.'
-  errors.value.datetime = newEvent.value.datetime.trim().length ? '' : 'Date & time is required.'
-  errors.value.mode = newEvent.value.mode.trim().length ? '' : 'Mode is required.'
-  errors.value.location = newEvent.value.location.trim().length ? '' : 'Location is required.'
-  return !(errors.value.title || errors.value.datetime || errors.value.mode || errors.value.location)
-}
-
-async function addEvent() {
-  if (!validateAdminForm()) return
-  const ev = {
-    id: Date.now(),
-    title: sanitize(newEvent.value.title.trim()),
-    description: sanitize(newEvent.value.description.trim()),
-    datetime: newEvent.value.datetime.trim(),
-    mode: newEvent.value.mode.trim(),
-    location: sanitize(newEvent.value.location.trim()),
-    createdAt: serverTimestamp(),
-    createdByEmail: (currentUser.value?.email || '').toLowerCase()
-  }
-  try {
-    await addDoc(collection(db, 'events'), ev)
-    newEvent.value = { title: '', description: '', datetime: '', mode: 'Online', location: '' }
-    errors.value = { title: '', datetime: '', mode: '', location: '' }
-  } catch (e) {
-    console.error('Failed to add event', e)
-    alert('Could not add event. Please try again.')
-  }
-}
 
 async function deleteEvent(id) {
   try {
@@ -294,50 +248,6 @@ async function deleteEvent(id) {
     <div class="container">
       <h1 class="h3 mb-4 text-center">Events</h1>
 
-      <div v-if="isAdmin" class="mb-4">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="h6 mb-0">Admin: Manage Events</h2>
-          </div>
-          <div class="card-body">
-            <form @submit.prevent="addEvent" novalidate>
-              <div class="row g-3">
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="evTitle">Title</label>
-                  <input id="evTitle" type="text" class="form-control" v-model.trim="newEvent.title" />
-                  <div v-if="errors.title" class="text-danger small mt-1">{{ errors.title }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="evDatetime">Date & Time</label>
-                  <input id="evDatetime" type="datetime-local" class="form-control" v-model="newEvent.datetime" />
-                  <div v-if="errors.datetime" class="text-danger small mt-1">{{ errors.datetime }}</div>
-                </div>
-                <div class="col-12">
-                  <label class="form-label" for="evDesc">Description (optional)</label>
-                  <textarea id="evDesc" class="form-control" rows="2" v-model.trim="newEvent.description" placeholder="Brief details..."></textarea>
-                </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="evMode">Mode</label>
-                  <select id="evMode" class="form-select" v-model="newEvent.mode">
-                    <option>Online</option>
-                    <option>In-person</option>
-                    <option>Hybrid</option>
-                  </select>
-                  <div v-if="errors.mode" class="text-danger small mt-1">{{ errors.mode }}</div>
-                </div>
-                <div class="col-12 col-md-6">
-                  <label class="form-label" for="evLocation">Location</label>
-                  <input id="evLocation" type="text" class="form-control" v-model.trim="newEvent.location" placeholder="e.g., 700 Collins St, Docklands VIC (required for In-person/Hybrid)" />
-                  <div v-if="errors.location" class="text-danger small mt-1">{{ errors.location }}</div>
-                </div>
-                <div class="col-12 d-flex gap-2">
-                  <button type="submit" class="btn btn-primary">Add event</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
 
       <!-- 1) Upcoming Events -->
       <div class="mb-4">
@@ -359,8 +269,8 @@ async function deleteEvent(id) {
               <button class="btn btn-sm btn-outline-secondary"
                 :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')"
                 :aria-label="`Open Google Maps directions to ${ev.location} for ${ev.title}`">Directions</button>
-              <button v-if="!isAdmin" class="btn btn-sm btn-primary" @click="register(ev.id)">Register</button>
-              <button v-else class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
+              <button class="btn btn-sm btn-primary" @click="register(ev.id)">Register</button>
+              <button v-if="isAdmin" class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
             </div>
           </li>
           <li v-if="!upcoming.length" class="list-group-item text-muted">No upcoming events.</li>
@@ -385,9 +295,8 @@ async function deleteEvent(id) {
               <button class="btn btn-sm btn-outline-secondary"
                 :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')"
                 :aria-label="`Open Google Maps directions to ${ev.location} for ${ev.title}`">Directions</button>
-              <button v-if="!isAdmin" class="btn btn-sm btn-outline-danger"
-                @click="unregister(ev.id)">Unregister</button>
-              <button v-else class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
+              <button class="btn btn-sm btn-outline-danger" @click="unregister(ev.id)">Unregister</button>
+              <button v-if="isAdmin" class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
             </div>
           </li>
           <li v-if="!registered.length" class="list-group-item text-muted">You haven't registered for any events yet.
