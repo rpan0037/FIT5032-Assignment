@@ -12,6 +12,41 @@
 
     <!-- Authorized content -->
     <div v-else class="row g-3">
+
+      <section class="col-12 col-lg-6">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h6 mb-0">Quick actions</h2>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <RouterLink class="btn btn-primary" to="/events" aria-label="Go to Events to add, edit or delete events">
+                Manage events
+              </RouterLink>
+              <RouterLink class="btn btn-outline-primary" to="/resources" aria-label="Go to Resources to curate support links">
+                Curate resources
+              </RouterLink>
+              <RouterLink class="btn btn-outline-secondary" to="/contact" aria-label="View contact and support info">
+                Contact &amp; support info
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="col-12 col-lg-6">
+        <div class="card h-100">
+          <div class="card-header">
+            <h2 class="h6 mb-0">Your access</h2>
+          </div>
+          <div class="card-body">
+            <p class="mb-1"><strong>Signed in as:</strong> {{ userEmail || '—' }}</p>
+            <p class="mb-0"><strong>Role:</strong> {{ roleLabel }}</p>
+            <p class="text-muted mt-2 small">Only approved admin accounts can open this page. Others are redirected.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="col-12">
         <div class="card h-100">
           <div class="card-header">
@@ -114,40 +149,6 @@
                 <button type="button" class="btn btn-outline-secondary" @click="resetEventForm">Clear</button>
               </div>
             </form>
-          </div>
-        </div>
-      </section>
-
-      <section class="col-12 col-lg-6">
-        <div class="card h-100">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h6 mb-0">Quick actions</h2>
-          </div>
-          <div class="card-body">
-            <div class="d-grid gap-2">
-              <RouterLink class="btn btn-primary" to="/events" aria-label="Go to Events to add, edit or delete events">
-                Manage events
-              </RouterLink>
-              <RouterLink class="btn btn-outline-primary" to="/resources" aria-label="Go to Resources to curate support links">
-                Curate resources
-              </RouterLink>
-              <RouterLink class="btn btn-outline-secondary" to="/contact" aria-label="View contact and support info">
-                Contact &amp; support info
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="col-12 col-lg-6">
-        <div class="card h-100">
-          <div class="card-header">
-            <h2 class="h6 mb-0">Your access</h2>
-          </div>
-          <div class="card-body">
-            <p class="mb-1"><strong>Signed in as:</strong> {{ userEmail || '—' }}</p>
-            <p class="mb-0"><strong>Role:</strong> {{ roleLabel }}</p>
-            <p class="text-muted mt-2 small">Only approved admin accounts can open this page. Others are redirected.</p>
           </div>
         </div>
       </section>
