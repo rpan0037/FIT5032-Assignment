@@ -1,7 +1,14 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import { isAuthenticated, logout } from '@/auth'
+import { isAuthenticated, currentUser, logout } from '@/auth'
+import { computed } from 'vue'
 const router = useRouter()
+const displayName = computed(() => {
+  const u = currentUser?.value
+  if (!u) return ''
+  // Prefer name; fall back to email; otherwise blank
+  return u.name || u.displayName || u.email || ''
+})
 function handleLogout() {
   logout()
   router.push('/login')
@@ -36,9 +43,12 @@ function handleLogout() {
           <li class="nav-item">
             <RouterLink class="nav-link" to="/about">About</RouterLink>
           </li>
-          <li class="nav-item ms-3">
-          <button v-if="isAuthenticated" class="btn btn-outline-danger btn-sm" @click="handleLogout">Logout</button>
-        </li>
+          <li class="nav-item d-flex align-items-center gap-2 ms-3" v-if="isAuthenticated">
+            <span class="badge text-bg-light" aria-live="polite">Welcome, {{ displayName }}</span>
+            <button class="btn btn-outline-danger btn-sm" @click="handleLogout" aria-label="Log out">
+              Logout
+            </button>
+          </li>
         </ul>
       </header>
     </div>

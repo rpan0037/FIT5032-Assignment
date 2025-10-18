@@ -31,6 +31,30 @@ const submitError = ref('')
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
 
+const EMAIL_ENDPOINT = "https://australia-southeast1-fit5032-week6-651ed.cloudfunctions.net/sendEmail";
+
+async function sendEmail({ to, subject, html, text, cc, bcc, replyTo, fromName }) {
+  const resp = await fetch(EMAIL_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, html, text, cc, bcc, replyTo, fromName })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.ok) {
+    throw new Error(data?.error || `HTTP ${resp.status}`);
+  }
+  return data;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 const validateFirstName = (onBlur) => {
   const v = formData.value.firstName.trim()
   if (!v) { if (onBlur) errors.value.firstName = 'First name is required.' }
@@ -135,6 +159,70 @@ async function submitForm() {
       createdAt: serverTimestamp(),
       user: userInfo
     })
+
+    // Send two emails via Cloud Function: admin notification + user acknowledgement
+    try {
+      const fullName = `${formData.value.firstName.trim()} ${formData.value.lastName.trim()}`.trim();
+      const adminInbox = "rpandia99@gmail.com"; // update if needed
+
+      const adminHtml = `
+        <h2>New Help Request</h2>
+        <p><strong>Name:</strong> ${escapeHtml(fullName || "N/A")}</p>
+        <p><strong>Email:</strong> ${escapeHtml(formData.value.email.trim())}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(formData.value.phone.trim() || "N/A")}</p>
+        <p><strong>Preferred contact:</strong> ${escapeHtml(formData.value.contact)}</p>
+        <p><strong>Topic:</strong> ${escapeHtml(formData.value.topic)}</p>
+        <p><strong>Details:</strong></p>
+        <pre style="white-space:pre-wrap">${escapeHtml(formData.value.details.trim())}</pre>
+      `;
+
+      await sendEmail({
+        to: adminInbox,
+        subject: `Help request: ${formData.value.subject || formData.value.topic || "General enquiry"}`,
+        html: adminHtml,
+        text:
+          `New Help Request\n\n` +
+          `Name: ${fullName || "N/A"}\n` +
+          `Email: ${formData.value.email.trim()}\n` +
+          `Phone: ${formData.value.phone.trim() || "N/A"}\n` +
+          `Preferred contact: ${formData.value.contact}\n` +
+          `Topic: ${formData.value.topic}\n\n` +
+          `${formData.value.details.trim()}\n`,
+        replyTo: formData.value.email.trim(),
+        fromName: "Youth Health (Help)"
+      });
+
+      const userHtml = `
+        <p>Hi ${escapeHtml(fullName || "there")},</p>
+        <p>We’ve received your help request and will get back to you shortly.</p>
+        <p><strong>Summary of your submission:</strong></p>
+        <ul>
+          <li><strong>Preferred contact:</strong> ${escapeHtml(formData.value.contact)}</li>
+          <li><strong>Topic:</strong> ${escapeHtml(formData.value.topic)}</li>
+        </ul>
+        <p><strong>Your message:</strong></p>
+        <pre style="white-space:pre-wrap">${escapeHtml(formData.value.details.trim())}</pre>
+        <p>— <strong>Youth Health Support</strong></p>
+      `;
+
+      await sendEmail({
+        to: (currentUser?.value?.email || formData.value.email.trim()),
+        subject: "We’ve received your help request",
+        html: userHtml,
+        text:
+          `Hi ${fullName || "there"},\n\n` +
+          `We’ve received your help request and will get back to you shortly.\n\n` +
+          `Preferred contact: ${formData.value.contact}\n` +
+          `Topic: ${formData.value.topic}\n\n` +
+          `Your message:\n${formData.value.details.trim()}\n\n` +
+          `— Youth Health Support\n`,
+        replyTo: adminInbox,
+        fromName: "Youth Health Support"
+      });
+    } catch (e) {
+      console.error("Failed to send emails via Cloud Function", e);
+      // Do not block UX if email fails
+    }
 
     showSuccess.value = true
     setTimeout(() => (showSuccess.value = false), 3500)
