@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
-import eventsData from '../assets/json/events.json'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { currentUser } from '@/auth'
+import { getFirestore, collection, query, where, limit, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp, getDocs, orderBy } from 'firebase/firestore'
 
 function sanitize (s) {
   return String(s ?? '')
@@ -12,28 +12,95 @@ function sanitize (s) {
     .replace(/'/g, '&#39;')
 }
 
-function useLocalStorageReactive(key, initialValue) {
-  const raw = localStorage.getItem(key)
-  const state = ref(raw ? JSON.parse(raw) : initialValue)
+const db = getFirestore()
 
-  watch(state, (val) => {
-    localStorage.setItem(key, JSON.stringify(val))
-  }, { deep: true })
-  return state
+const events = ref([])
+let stopEventsListener = null
 
-}
+onMounted(() => {
+  const q = query(collection(db, 'events'), orderBy('datetime', 'asc'))
+  stopEventsListener = onSnapshot(q, (snap) => {
+    events.value = snap.docs.map(d => ({ id: d.data().id, ...d.data() }))
+  }, (err) => {
+    console.error('events listener error', err)
+  })
+})
 
-const events = useLocalStorageReactive('events_v1', eventsData)
-const registeredIds = useLocalStorageReactive('registeredEvents', [])
+onBeforeUnmount(() => {
+  if (typeof stopEventsListener === 'function') stopEventsListener()
+})
+
+const registeredIds = ref([])
+const regsLoading = ref(false)
+const regsError = ref('')
+let stopRegsListener = null
 
 function isRegistered(id) {
   return registeredIds.value.includes(id)
 }
-function register(id) {
-  if (!isRegistered(id)) registeredIds.value.push(id)
+
+watch(() => currentUser.value && currentUser.value.id, async (uid) => {
+  if (typeof stopRegsListener === 'function') { stopRegsListener(); stopRegsListener = null }
+
+  registeredIds.value = []
+  regsError.value = ''
+
+  if (!uid) return
+
+  try {
+    regsLoading.value = true
+    const q = query(collection(db, 'event-registrations'), where('uid', '==', uid))
+    stopRegsListener = onSnapshot(q, (snap) => {
+      registeredIds.value = snap.docs.map(d => d.data().eventId)
+      regsLoading.value = false
+    }, (err) => {
+      console.error('registrations listener error', err)
+      regsError.value = 'Could not load your registrations.'
+      regsLoading.value = false
+    })
+  } catch (e) {
+    console.error('failed to subscribe registrations', e)
+    regsError.value = 'Could not load your registrations.'
+    regsLoading.value = false
+  }
+}, { immediate: true })
+
+async function register(id) {
+  if (!currentUser.value || !currentUser.value.id) {
+    alert('Please log in to register for events.')
+    return
+  }
+  if (isRegistered(id)) return
+  try {
+    await addDoc(collection(db, 'event-registrations'), {
+      uid: currentUser.value.id,
+      email: (currentUser.value.email || '').toLowerCase(),
+      eventId: id,
+      createdAt: serverTimestamp()
+    })
+  } catch (e) {
+    console.error('Failed to register for event', e)
+    alert('Could not register. Please try again.')
+  }
 }
-function unregister(id) {
-  registeredIds.value = registeredIds.value.filter(x => x !== id)
+
+async function unregister(id) {
+  if (!currentUser.value || !currentUser.value.id) return
+  try {
+    const q = query(
+      collection(db, 'event-registrations'),
+      where('uid', '==', currentUser.value.id),
+      where('eventId', '==', id),
+      limit(1)
+    )
+    const snap = await getDocs(q)
+    if (!snap.empty) {
+      await deleteDoc(doc(db, 'event-registrations', snap.docs[0].id))
+    }
+  } catch (e) {
+    console.error('Failed to unregister from event', e)
+    alert('Could not unregister. Please try again.')
+  }
 }
 
 function fmt(dt) {
@@ -62,26 +129,39 @@ function validateAdminForm() {
   return !(errors.value.title || errors.value.datetime || errors.value.mode || errors.value.location)
 }
 
-function addEvent() {
+async function addEvent() {
   if (!validateAdminForm()) return
   const ev = {
-    id: Date.now(),
+    id: Date.now(), 
     title: sanitize(newEvent.value.title.trim()),
     description: sanitize(newEvent.value.description.trim()),
     datetime: newEvent.value.datetime.trim(),
     mode: newEvent.value.mode.trim(),
-    location: sanitize(newEvent.value.location.trim())
+    location: sanitize(newEvent.value.location.trim()),
+    createdAt: serverTimestamp(),
+    createdByEmail: (currentUser.value?.email || '').toLowerCase()
   }
-  events.value.push(ev)
-  localStorage.setItem('events_v1', JSON.stringify(events.value))
-
-  newEvent.value = { title: '', description: '', datetime: '', mode: 'Online', location: '' }
-  errors.value = { title: '', datetime: '', mode: '', location: '' }
+  try {
+    await addDoc(collection(db, 'events'), ev)
+    newEvent.value = { title: '', description: '', datetime: '', mode: 'Online', location: '' }
+    errors.value = { title: '', datetime: '', mode: '', location: '' }
+  } catch (e) {
+    console.error('Failed to add event', e)
+    alert('Could not add event. Please try again.')
+  }
 }
 
-function deleteEvent(id) {
-  events.value = events.value.filter(ev => ev.id !== id)
-  localStorage.setItem('events_v1', JSON.stringify(events.value))
+async function deleteEvent(id) {
+  try {
+    const q = query(collection(db, 'events'), where('id', '==', id), limit(1))
+    const snap = await getDocs(q)
+    if (!snap.empty) {
+      await deleteDoc(doc(db, 'events', snap.docs[0].id))
+    }
+  } catch (e) {
+    console.error('Failed to delete event', e)
+    alert('Could not delete event. Please try again.')
+  }
 }
 </script>
 
@@ -138,6 +218,8 @@ function deleteEvent(id) {
             <!-- 1) Upcoming Events -->
         <div class="mb-4">
         <h2 class="h5">Upcoming Events</h2>
+        <div v-if="regsLoading" class="small text-muted mb-2">Loading your registrations…</div>
+        <div v-if="regsError" class="alert alert-warning" role="alert">{{ regsError }}</div>
         <ul class="list-group">
           <li v-for="ev in upcoming" :key="ev.id"
             class="list-group-item d-flex justify-content-between align-items-center">

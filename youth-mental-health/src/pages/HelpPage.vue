@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { currentUser } from '@/auth.js'
 
 const formData = ref({
   firstName: '',
@@ -23,9 +25,35 @@ const errors = ref({
 })
 
 const showSuccess = ref(false)
+const submitting = ref(false)
+const submitError = ref('')
 
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
+
+const EMAIL_ENDPOINT = "https://australia-southeast1-fit5032-week6-651ed.cloudfunctions.net/sendEmail";
+
+async function sendEmail({ to, subject, html, text, cc, bcc, replyTo, fromName }) {
+  const resp = await fetch(EMAIL_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ to, subject, html, text, cc, bcc, replyTo, fromName })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || !data?.ok) {
+    throw new Error(data?.error || `HTTP ${resp.status}`);
+  }
+  return data;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 const validateFirstName = (onBlur) => {
   const v = formData.value.firstName.trim()
@@ -93,7 +121,8 @@ function clearForm() {
   errors.value = { firstName: null, lastName: null, email: null, phone: null, topic: null, details: null, consent: null }
 }
 
-function submitForm() {
+async function submitForm() {
+  // run validations
   validateAllOnBlur()
   if (
     errors.value.firstName ||
@@ -106,9 +135,104 @@ function submitForm() {
   ) {
     return
   }
-  showSuccess.value = true
-  setTimeout(() => (showSuccess.value = false), 3500)
-  clearForm()
+
+  if (submitting.value) return
+  submitting.value = true
+  submitError.value = ''
+
+  try {
+    const db = getFirestore()
+    const userInfo = currentUser?.value
+      ? { uid: currentUser.value.id || currentUser.value.uid, email: currentUser.value.email, name: currentUser.value.name || '' }
+      : null
+
+    await addDoc(collection(db, 'help-requests'), {
+      firstName: formData.value.firstName.trim(),
+      lastName: formData.value.lastName.trim(),
+      email: formData.value.email.trim(),
+      phone: formData.value.phone.trim(),
+      preferredContact: formData.value.contact,
+      topic: formData.value.topic,
+      details: formData.value.details.trim(),
+      consent: !!formData.value.consent,
+      status: 'new',
+      createdAt: serverTimestamp(),
+      user: userInfo
+    })
+
+    // Send two emails via Cloud Function: admin notification + user acknowledgement
+    try {
+      const fullName = `${formData.value.firstName.trim()} ${formData.value.lastName.trim()}`.trim();
+      const adminInbox = "rpandia99@gmail.com"; // update if needed
+
+      const adminHtml = `
+        <h2>New Help Request</h2>
+        <p><strong>Name:</strong> ${escapeHtml(fullName || "N/A")}</p>
+        <p><strong>Email:</strong> ${escapeHtml(formData.value.email.trim())}</p>
+        <p><strong>Phone:</strong> ${escapeHtml(formData.value.phone.trim() || "N/A")}</p>
+        <p><strong>Preferred contact:</strong> ${escapeHtml(formData.value.contact)}</p>
+        <p><strong>Topic:</strong> ${escapeHtml(formData.value.topic)}</p>
+        <p><strong>Details:</strong></p>
+        <pre style="white-space:pre-wrap">${escapeHtml(formData.value.details.trim())}</pre>
+      `;
+
+      await sendEmail({
+        to: adminInbox,
+        subject: `Help request: ${formData.value.subject || formData.value.topic || "General enquiry"}`,
+        html: adminHtml,
+        text:
+          `New Help Request\n\n` +
+          `Name: ${fullName || "N/A"}\n` +
+          `Email: ${formData.value.email.trim()}\n` +
+          `Phone: ${formData.value.phone.trim() || "N/A"}\n` +
+          `Preferred contact: ${formData.value.contact}\n` +
+          `Topic: ${formData.value.topic}\n\n` +
+          `${formData.value.details.trim()}\n`,
+        replyTo: formData.value.email.trim(),
+        fromName: "Youth Health (Help)"
+      });
+
+      const userHtml = `
+        <p>Hi ${escapeHtml(fullName || "there")},</p>
+        <p>We’ve received your help request and will get back to you shortly.</p>
+        <p><strong>Summary of your submission:</strong></p>
+        <ul>
+          <li><strong>Preferred contact:</strong> ${escapeHtml(formData.value.contact)}</li>
+          <li><strong>Topic:</strong> ${escapeHtml(formData.value.topic)}</li>
+        </ul>
+        <p><strong>Your message:</strong></p>
+        <pre style="white-space:pre-wrap">${escapeHtml(formData.value.details.trim())}</pre>
+        <p>— <strong>Youth Health Support</strong></p>
+      `;
+
+      await sendEmail({
+        to: (currentUser?.value?.email || formData.value.email.trim()),
+        subject: "We’ve received your help request",
+        html: userHtml,
+        text:
+          `Hi ${fullName || "there"},\n\n` +
+          `We’ve received your help request and will get back to you shortly.\n\n` +
+          `Preferred contact: ${formData.value.contact}\n` +
+          `Topic: ${formData.value.topic}\n\n` +
+          `Your message:\n${formData.value.details.trim()}\n\n` +
+          `— Youth Health Support\n`,
+        replyTo: adminInbox,
+        fromName: "Youth Health Support"
+      });
+    } catch (e) {
+      console.error("Failed to send emails via Cloud Function", e);
+      // Do not block UX if email fails
+    }
+
+    showSuccess.value = true
+    setTimeout(() => (showSuccess.value = false), 3500)
+    clearForm()
+  } catch (e) {
+    console.error('Failed to submit help request', e)
+    submitError.value = 'Sorry, we could not submit your request. Please try again.'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -123,6 +247,7 @@ function submitForm() {
           <div v-if="showSuccess" class="alert alert-success" role="alert">
             Query received — we’ll get back to you shortly.
           </div>
+          <div v-if="submitError" class="alert alert-danger" role="alert" aria-live="polite">{{ submitError }}</div>
 
           <form @submit.prevent="submitForm">
             <!-- Row: First / Last Name -->
@@ -214,7 +339,7 @@ function submitForm() {
 
             <!-- Actions -->
             <div class="text-center">
-              <button type="submit" class="btn btn-primary me-2">Submit</button>
+              <button type="submit" class="btn btn-primary me-2" :disabled="submitting">{{ submitting ? 'Submitting..' : 'Submit' }}</button>
               <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
             </div>
           </form>
