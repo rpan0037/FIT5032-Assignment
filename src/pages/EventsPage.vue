@@ -7,7 +7,7 @@ import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import { currentUser } from '@/auth'
 import { getFirestore, collection, query, where, limit, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp, getDocs, orderBy } from 'firebase/firestore'
 
-function sanitize (s) {
+function sanitize(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -23,20 +23,21 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 mapboxgl.accessToken = MAPBOX_TOKEN
 const mapEl = ref(null)
 let map = null
-const eventMarkers = new Map() 
+const eventMarkers = new Map()
 let routeSourceId = 'ev-route-src'
 let routeLayerId = 'ev-route-layer'
-const routeInfo = ref(null) 
+const routeInfo = ref(null)
 let geocoderCtrl = null
-const editingEvent = ref(null) 
-const geoPick = ref(null) 
+const editingEvent = ref(null)
+const geoPick = ref(null)
+const mapStatus = ref(null) 
 
 async function initMapOnce() {
   if (map) return
   map = new mapboxgl.Map({
     container: mapEl.value,
     style: 'mapbox://styles/mapbox/streets-v12',
-    center: [144.9631, -37.8136], 
+    center: [144.9631, -37.8136],
     zoom: 11
   })
   map.addControl(new mapboxgl.NavigationControl(), 'top-right')
@@ -45,14 +46,21 @@ async function initMapOnce() {
     mapboxgl,
     marker: false,
     placeholder: 'Search places…',
-    countries: 'AU', 
+    countries: 'AU',
     language: 'en',
     limit: 5,
     types: 'place,locality,poi,address',
-    bbox: [112.9211, -43.7405, 153.6387, -10.6682], 
-    proximity: { longitude: 144.9631, latitude: -37.8136 } 
+    bbox: [112.9211, -43.7405, 153.6387, -10.6682],
+    proximity: { longitude: 144.9631, latitude: -37.8136 }
   })
   map.addControl(geocoderCtrl, 'top-left')
+  requestAnimationFrame(() => {
+    const input = document.querySelector('.mapboxgl-ctrl-geocoder input[type="text"]')
+    if (input) {
+      input.setAttribute('aria-label', 'Search places on the map')
+      input.setAttribute('id', 'map-search')
+    }
+  })
   geocoderCtrl.on('result', (e) => {
     const [lng, lat] = e.result.center
     geoPick.value = { lng, lat, place: e.result.place_name || '' }
@@ -73,6 +81,10 @@ async function initMapOnce() {
           .addTo(map)
         eventMarkers.set(ev.id, marker)
       }
+    }
+    if (mapStatus.value) {
+      const place = e.result.place_name || ''
+      mapStatus.value.textContent = place ? `Map centered on ${place}.` : 'Map updated.'
     }
     map.flyTo({ center: [lng, lat], zoom: 14 })
   })
@@ -101,6 +113,9 @@ async function showEventOnMap(ev) {
     if (geocoderCtrl) {
       geocoderCtrl.setInput(ev.location);
       geocoderCtrl.query(ev.location);
+      if (mapStatus.value) {
+        mapStatus.value.textContent = `Searching the map for: ${ev.location}`
+      }
     }
   } catch (e) {
     console.error('showEventOnMap failed', e);
@@ -132,7 +147,7 @@ onMounted(() => {
   }, (err) => {
     console.error('events listener error', err)
   })
-  initMapOnce().catch(() => {})
+  initMapOnce().catch(() => { })
 })
 
 onBeforeUnmount(() => {
@@ -241,7 +256,7 @@ function validateAdminForm() {
 async function addEvent() {
   if (!validateAdminForm()) return
   const ev = {
-    id: Date.now(), 
+    id: Date.now(),
     title: sanitize(newEvent.value.title.trim()),
     description: sanitize(newEvent.value.description.trim()),
     datetime: newEvent.value.datetime.trim(),
@@ -324,8 +339,8 @@ async function deleteEvent(id) {
         </div>
       </div>
 
-            <!-- 1) Upcoming Events -->
-        <div class="mb-4">
+      <!-- 1) Upcoming Events -->
+      <div class="mb-4">
         <h2 class="h5">Upcoming Events</h2>
         <div v-if="regsLoading" class="small text-muted mb-2">Loading your registrations…</div>
         <div v-if="regsError" class="alert alert-warning" role="alert">{{ regsError }}</div>
@@ -338,8 +353,12 @@ async function deleteEvent(id) {
               <div class="small text-muted">{{ fmt(ev.datetime) }} · {{ ev.mode }} · {{ ev.location }}</div>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-sm btn-outline-secondary" :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="showEventOnMap(ev)">Show on map</button>
-              <button class="btn btn-sm btn-outline-secondary" :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')">Directions</button>
+              <button class="btn btn-sm btn-outline-secondary"
+                :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="showEventOnMap(ev)"
+                :aria-controls="'map'" :aria-label="`Show ${ev.title} on the map: ${ev.location}`">Show on map</button>
+              <button class="btn btn-sm btn-outline-secondary"
+                :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')"
+                :aria-label="`Open Google Maps directions to ${ev.location} for ${ev.title}`">Directions</button>
               <button v-if="!isAdmin" class="btn btn-sm btn-primary" @click="register(ev.id)">Register</button>
               <button v-else class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
             </div>
@@ -360,9 +379,14 @@ async function deleteEvent(id) {
               <div class="small text-muted">{{ fmt(ev.datetime) }} · {{ ev.mode }} · {{ ev.location }}</div>
             </div>
             <div class="d-flex align-items-center gap-2">
-              <button class="btn btn-sm btn-outline-secondary" :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="showEventOnMap(ev)">Show on map</button>
-              <button class="btn btn-sm btn-outline-secondary" :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')">Directions</button>
-              <button v-if="!isAdmin" class="btn btn-sm btn-outline-danger" @click="unregister(ev.id)">Unregister</button>
+              <button class="btn btn-sm btn-outline-secondary"
+                :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="showEventOnMap(ev)"
+                :aria-controls="'map'" :aria-label="`Show ${ev.title} on the map: ${ev.location}`">Show on map</button>
+              <button class="btn btn-sm btn-outline-secondary"
+                :disabled="(ev.mode || '').toLowerCase().includes('online')" @click="routeToEvent(ev, 'walking')"
+                :aria-label="`Open Google Maps directions to ${ev.location} for ${ev.title}`">Directions</button>
+              <button v-if="!isAdmin" class="btn btn-sm btn-outline-danger"
+                @click="unregister(ev.id)">Unregister</button>
               <button v-else class="btn btn-sm btn-outline-danger" @click="deleteEvent(ev.id)">Delete</button>
             </div>
           </li>
@@ -370,16 +394,18 @@ async function deleteEvent(id) {
           </li>
         </ul>
       </div>
-    <div class="mt-4">
-      <div ref="mapEl" style="height: 420px; border-radius: 12px; overflow: hidden;"></div>
-      <div class="row g-2 mt-2">
-        <div class="col-12 col-md-6" v-if="routeInfo">
-          <div class="card p-2 small">
-            <div>Route: {{ routeInfo.mode }} • ~{{ routeInfo.etaMin }} min • {{ routeInfo.distanceKm }} km</div>
+      <div class="mt-4">
+        <div ref="mapEl" id="map" role="region" aria-label="Map of event locations"
+          style="height: 420px; border-radius: 12px; overflow: hidden;"></div>
+        <p class="visually-hidden" aria-live="polite" ref="mapStatus"></p>
+        <div class="row g-2 mt-2">
+          <div class="col-12 col-md-6" v-if="routeInfo">
+            <div class="card p-2 small">
+              <div>Route: {{ routeInfo.mode }} • ~{{ routeInfo.etaMin }} min • {{ routeInfo.distanceKm }} km</div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   </section>
 </template>
