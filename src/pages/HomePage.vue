@@ -6,6 +6,11 @@
         <p class="lead mb-0">
           A safe space to learn, join events, and get support. Here’s a quick snapshot of how our community is doing.
         </p>
+        <div class="d-flex flex-wrap justify-content-center gap-2 mt-3" aria-label="Primary actions">
+          <RouterLink class="btn btn-outline-primary" to="/events">Browse events</RouterLink>
+          <RouterLink class="btn btn-outline-primary" to="/help">Get help now</RouterLink>
+          <RouterLink class="btn btn-outline-primary" to="/resources">Explore resources</RouterLink>
+        </div>
       </header>
 
       <section class="row g-3 mb-4" aria-label="Site statistics">
@@ -31,6 +36,74 @@
               <div class="stat-label">Help Requests</div>
               <div class="stat-value" :aria-label="`Total help requests: ${totalHelpRequests}`">{{ totalHelpRequests }}
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="row g-3 mb-4" aria-label="Why YouthConnect">
+        <div class="col-12 col-md-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6">Learn</h2>
+              <p class="mb-0 small">Explore trusted resources curated for young people on topics like stress, sleep, and relationships.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6">Connect</h2>
+              <p class="mb-0 small">Join workshops and events—online or in-person—to build skills and meet others.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <h2 class="h6">Get help</h2>
+              <p class="mb-0 small">Submit a help request and our team will get back to you promptly with next steps.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="row g-3 mb-4" aria-label="Highlights">
+                <div class="col-12 col-lg-5">
+          <div class="card h-100 border-success">
+            <div class="card-header bg-success text-white">
+              <h2 class="h6 mb-0">Need support right now?</h2>
+            </div>
+            <div class="card-body">
+              <p class="mb-2">If you’re struggling or worried about someone, reach out. Our team is here to help.</p>
+              <ul class="small mb-3">
+                <li>Submit a confidential help request</li>
+                <li>We’ll email you a confirmation with your details</li>
+                <li>Our team responds as soon as possible</li>
+              </ul>
+              <RouterLink class="btn btn-success me-2" to="/help">Ask for help</RouterLink>
+              <RouterLink class="btn btn-outline-success" to="/contact">Crisis & contact info</RouterLink>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-7">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h2 class="h6 mb-0">What’s happening</h2>
+              <RouterLink class="small" to="/events" aria-label="View all events">View all</RouterLink>
+            </div>
+            <div class="card-body">
+              <p v-if="!upcomingEvents.length" class="text-muted mb-0">No upcoming events scheduled yet. Check back soon!</p>
+              <ul v-else class="list-group">
+                <li v-for="ev in upcomingEvents" :key="ev.id" class="list-group-item">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                      <div class="fw-semibold">{{ ev.title || 'Untitled event' }}</div>
+                      <div class="small text-muted">{{ formatDate(ev.datetime) }} · {{ ev.mode }} · {{ ev.location || '—' }}</div>
+                      <div class="small">{{ ev.description || '' }}</div>
+                    </div>
+                    <RouterLink class="btn btn-sm btn-outline-primary ms-2" to="/events" aria-label="Register from events page">Details</RouterLink>
+                  </div>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -291,6 +364,17 @@ function renderHelpPieChart() {
 }
 
 import { watch } from 'vue'
+import { computed as vComputed } from 'vue'
+
+const upcomingEvents = vComputed(() => {
+  const now = Date.now()
+  const list = (eventsAll.value || []).filter(ev => {
+    const t = new Date(ev.datetime).getTime()
+    return !isNaN(t) && t >= now
+  })
+  list.sort((a,b) => new Date(a.datetime) - new Date(b.datetime))
+  return list.slice(0, 3)
+})
 watch(helpTopicCounts, () => {
   renderHelpPieChart()
 })
