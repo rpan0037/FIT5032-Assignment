@@ -5,7 +5,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import sgMail from "@sendgrid/mail";
 import corsPkg from "cors";
 
-const cors = corsPkg({ origin: true }); 
+const cors = corsPkg({ origin: true });
 const SENDGRID_API_KEY = defineSecret("SENDGRID_API_KEY");
 const SENDGRID_FROM = defineSecret("SENDGRID_FROM");
 
@@ -102,5 +102,91 @@ export const sendBulkEmail = onCall(
     }
 
     return { ok: true, sent };
+  }
+);
+
+export const getEvents = onRequest(
+  {
+    region: "australia-southeast1",
+    cors: true
+  },
+  async (req, res) => {
+    return cors(req, res, async () => {
+      if (req.method !== "GET") {
+        return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+      }
+      try {
+        const db = getFirestore();
+        const limitParam = Math.max(1, Math.min(1000, parseInt(String(req.query.limit || "500"), 10) || 500));
+        const modeFilter = String(req.query.mode || "").toLowerCase();
+
+        let ref = db.collection("events");
+        const snap = await ref.orderBy("datetime", "desc").get();
+        const rows = snap.docs.map(d => {
+          const data = d.data() || {};
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null;
+          return {
+            id: data.id ?? d.id,
+            title: data.title || "",
+            description: data.description || "",
+            datetime: data.datetime || "",
+            mode: data.mode || "",
+            location: data.location || "",
+            createdAt
+          };
+        });
+
+        const filtered = modeFilter
+          ? rows.filter(r => String(r.mode || "").toLowerCase().includes(modeFilter))
+          : rows;
+        const out = filtered.slice(0, limitParam);
+        return res.status(200).json({ ok: true, count: out.length, events: out });
+      } catch (err) {
+        console.error("getEvents error:", err);
+        return res.status(500).json({ ok: false, error: err?.message || "Unknown error" });
+      }
+    });
+  }
+);
+
+export const getHelpRequests = onRequest(
+  {
+    region: "australia-southeast1",
+    cors: true
+  },
+  async (req, res) => {
+    return cors(req, res, async () => {
+      if (req.method !== "GET") {
+        return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+      }
+      try {
+        const db = getFirestore();
+        const limitParam = Math.max(1, Math.min(2000, parseInt(String(req.query.limit || "500"), 10) || 500));
+        const topicFilter = String(req.query.topic || "").toLowerCase();
+
+        const snap = await db.collection("help-requests").orderBy("createdAt", "desc").get();
+        const rows = snap.docs.map(d => {
+          const data = d.data() || {};
+          const createdAt = data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : null;
+          return {
+            id: d.id,
+            createdAt,
+            topic: data.topic || "",
+            status: data.status || "",
+            preferredContact: data.preferredContact || data.preferredcontact || "",
+            details: data.details || data.message || ""
+          };
+        });
+
+        const filtered = topicFilter
+          ? rows.filter(r => String(r.topic || "").toLowerCase() === topicFilter)
+          : rows;
+        const out = filtered.slice(0, limitParam);
+        return res.status(200).json({ ok: true, count: out.length, helpRequests: out });
+      } catch (err) {
+        console.error("getHelpRequests error:", err);
+        return res.status(500).json({ ok: false, error: err?.message || "Unknown error" });
+      }
+    });
   }
 );
