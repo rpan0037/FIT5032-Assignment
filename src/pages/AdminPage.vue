@@ -155,6 +155,141 @@
           </div>
         </div>
       </section>
+
+      <section class="col-12">
+        <div class="card h-100">
+          <div class="card-header">
+            <h2 class="h6 mb-0">Add Resource</h2>
+          </div>
+          <div class="card-body">
+            <div
+              v-if="showResCreated"
+              class="alert alert-success"
+              role="alert"
+              aria-live="assertive"
+              tabindex="-1"
+              ref="resSuccessRef"
+            >
+              Resource added successfully.
+            </div>
+            <form @submit.prevent="addResource" novalidate>
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label for="res-title" class="form-label">Title</label>
+                  <input id="res-title" ref="resTitleRef" type="text" class="form-control" v-model.trim="newResource.title"
+                    required :aria-invalid="resErrors.title ? 'true' : 'false'"
+                    :aria-describedby="resErrors.title ? 'err-res-title' : null" />
+                  <div v-if="resErrors.title" id="err-res-title" class="text-danger small mt-1" role="alert">{{ resErrors.title }}</div>
+                </div>
+                <div class="col-12 col-md-6">
+                  <label for="res-url" class="form-label">URL</label>
+                  <input id="res-url" ref="resUrlRef" type="url" class="form-control" v-model.trim="newResource.url"
+                    placeholder="https://…" required :aria-invalid="resErrors.url ? 'true' : 'false'"
+                    :aria-describedby="resErrors.url ? 'err-res-url' : null" />
+                  <div v-if="resErrors.url" id="err-res-url" class="text-danger small mt-1" role="alert">{{ resErrors.url }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label for="res-audience" class="form-label">Audience</label>
+                  <input id="res-audience" ref="resAudienceRef" type="text" class="form-control" v-model.trim="newResource.audience"
+                    placeholder="e.g., Youth" required :aria-invalid="resErrors.audience ? 'true' : 'false'"
+                    :aria-describedby="resErrors.audience ? 'err-res-audience' : null" />
+                  <div v-if="resErrors.audience" id="err-res-audience" class="text-danger small mt-1" role="alert">{{ resErrors.audience }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label for="res-topic" class="form-label">Topic</label>
+                  <input id="res-topic" ref="resTopicRef" type="text" class="form-control" v-model.trim="newResource.topic"
+                    placeholder="e.g., Sleep" required :aria-invalid="resErrors.topic ? 'true' : 'false'"
+                    :aria-describedby="resErrors.topic ? 'err-res-topic' : null" />
+                  <div v-if="resErrors.topic" id="err-res-topic" class="text-danger small mt-1" role="alert">{{ resErrors.topic }}</div>
+                </div>
+                <div class="col-12 col-md-4">
+                  <label for="res-format" class="form-label">Format</label>
+                  <select id="res-format" ref="resFormatRef" class="form-select" v-model="newResource.format"
+                    required :aria-invalid="resErrors.format ? 'true' : 'false'"
+                    :aria-describedby="resErrors.format ? 'err-res-format' : null">
+                    <option>Article</option>
+                    <option>Video</option>
+                    <option>Podcast</option>
+                    <option>Website</option>
+                    <option>Guide</option>
+                  </select>
+                  <div v-if="resErrors.format" id="err-res-format" class="text-danger small mt-1" role="alert">{{ resErrors.format }}</div>
+                </div>
+              </div>
+              <div class="mt-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Add Resource</button>
+                <button type="button" class="btn btn-outline-secondary" @click="resetResourceForm">Clear</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+      <section class="col-12">
+  <div class="card h-100">
+    <div class="card-header">
+      <h2 class="h6 mb-0">Add Provider</h2>
+    </div>
+    <div class="card-body">
+      <div
+        v-if="showProvCreated"
+        class="alert alert-success"
+        role="alert"
+        aria-live="assertive"
+        tabindex="-1"
+        ref="provSuccessRef"
+      >
+        Provider added successfully.
+      </div>
+      <form @submit.prevent="addProvider" novalidate>
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label for="prov-name" class="form-label">Name</label>
+            <input id="prov-name" ref="provNameRef" type="text" class="form-control" v-model.trim="newProvider.name"
+              required :aria-invalid="provErrors.name ? 'true' : 'false'"
+              :aria-describedby="provErrors.name ? 'err-prov-name' : null" />
+            <div v-if="provErrors.name" id="err-prov-name" class="text-danger small mt-1" role="alert">{{ provErrors.name }}</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="prov-email" class="form-label">Email</label>
+            <input id="prov-email" ref="provEmailRef" type="email" class="form-control" v-model.trim="newProvider.email"
+              required :aria-invalid="provErrors.email ? 'true' : 'false'"
+              :aria-describedby="provErrors.email ? 'err-prov-email' : null" />
+            <div v-if="provErrors.email" id="err-prov-email" class="text-danger small mt-1" role="alert">{{ provErrors.email }}</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="prov-phone" class="form-label">Phone</label>
+            <input id="prov-phone" ref="provPhoneRef" type="text" class="form-control" v-model.trim="newProvider.phone"
+              required :aria-invalid="provErrors.phone ? 'true' : 'false'"
+              :aria-describedby="provErrors.phone ? 'err-prov-phone' : null" />
+            <div v-if="provErrors.phone" id="err-prov-phone" class="text-danger small mt-1" role="alert">{{ provErrors.phone }}</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="prov-region" class="form-label">Region</label>
+            <input id="prov-region" ref="provRegionRef" type="text" class="form-control" v-model.trim="newProvider.region"
+              placeholder="e.g., Melbourne" required :aria-invalid="provErrors.region ? 'true' : 'false'"
+              :aria-describedby="provErrors.region ? 'err-prov-region' : null" />
+            <div v-if="provErrors.region" id="err-prov-region" class="text-danger small mt-1" role="alert">{{ provErrors.region }}</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="prov-type" class="form-label">Type</label>
+            <input id="prov-type" ref="provTypeRef" type="text" class="form-control" v-model.trim="newProvider.type"
+              placeholder="e.g., Counsellor" required :aria-invalid="provErrors.type ? 'true' : 'false'"
+              :aria-describedby="provErrors.type ? 'err-prov-type' : null" />
+            <div v-if="provErrors.type" id="err-prov-type" class="text-danger small mt-1" role="alert">{{ provErrors.type }}</div>
+          </div>
+        </div>
+        <div class="mt-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Add Provider</button>
+          <button type="button" class="btn btn-outline-secondary" @click="resetProviderForm">Clear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
     </div>
   </main>
 </template>
@@ -311,6 +446,133 @@ async function addEvent() {
     console.error('Failed to create event', e)
     evErrors.value.title = 'Could not create event. Try again.'
     evTitleRef.value?.focus()
+  }
+}
+
+// ----- Resources form -----
+const newResource = ref({
+  title: '',
+  url: '',
+  audience: '',
+  topic: '',
+  format: 'Article'
+})
+const resErrors = ref({ title: '', url: '', audience: '', topic: '', format: '' })
+const resTitleRef = ref(null)
+const resUrlRef = ref(null)
+const resAudienceRef = ref(null)
+const resTopicRef = ref(null)
+const resFormatRef = ref(null)
+const resSuccessRef = ref(null)
+const showResCreated = ref(false)
+
+function resetResourceForm () {
+  newResource.value = { title: '', url: '', audience: '', topic: '', format: 'Article' }
+  resErrors.value = { title: '', url: '', audience: '', topic: '', format: '' }
+}
+function validateResourceForm () {
+  resErrors.value = { title: '', url: '', audience: '', topic: '', format: '' }
+  if (!newResource.value.title.trim()) resErrors.value.title = 'Title is required.'
+  const url = String(newResource.value.url || '').trim()
+  if (!url) resErrors.value.url = 'URL is required.'
+  else if (!/^https?:\/\//i.test(url)) resErrors.value.url = 'Enter a valid http(s) URL.'
+  if (!newResource.value.audience.trim()) resErrors.value.audience = 'Audience is required.'
+  if (!newResource.value.topic.trim()) resErrors.value.topic = 'Topic is required.'
+  if (!newResource.value.format.trim()) resErrors.value.format = 'Format is required.'
+  return Object.values(resErrors.value).every(v => !v)
+}
+async function addResource () {
+  if (!validateResourceForm()) {
+    if (resErrors.value.title) { resTitleRef.value?.focus(); return }
+    if (resErrors.value.url) { resUrlRef.value?.focus(); return }
+    if (resErrors.value.audience) { resAudienceRef.value?.focus(); return }
+    if (resErrors.value.topic) { resTopicRef.value?.focus(); return }
+    if (resErrors.value.format) { resFormatRef.value?.focus(); return }
+    return
+  }
+  try {
+    const docData = {
+      title: sanitize(newResource.value.title.trim()),
+      url: String(newResource.value.url).trim(),
+      audience: sanitize(newResource.value.audience.trim()),
+      topic: sanitize(newResource.value.topic.trim()),
+      format: sanitize(newResource.value.format.trim()),
+      createdAt: serverTimestamp(),
+      createdByEmail: (userEmail.value || 'admin').toLowerCase()
+    }
+    await addDoc(collection(db, 'resources'), docData)
+    showResCreated.value = true
+    nextTick(() => resSuccessRef.value?.focus())
+    setTimeout(() => { showResCreated.value = false }, 2500)
+    resetResourceForm()
+  } catch (e) {
+    console.error('Failed to add resource', e)
+    resErrors.value.title = 'Could not add resource. Try again.'
+    resTitleRef.value?.focus()
+  }
+}
+
+// ----- Providers form -----
+const newProvider = ref({
+  name: '',
+  email: '',
+  phone: '',
+  region: '',
+  type: ''
+})
+const provErrors = ref({ name: '', email: '', phone: '', region: '', type: '' })
+const provNameRef = ref(null)
+const provEmailRef = ref(null)
+const provPhoneRef = ref(null)
+const provRegionRef = ref(null)
+const provTypeRef = ref(null)
+const provSuccessRef = ref(null)
+const showProvCreated = ref(false)
+
+function resetProviderForm () {
+  newProvider.value = { name: '', email: '', phone: '', region: '', type: '' }
+  provErrors.value = { name: '', email: '', phone: '', region: '', type: '' }
+}
+
+function validateProviderForm () {
+  provErrors.value = { name: '', email: '', phone: '', region: '', type: '' }
+  if (!newProvider.value.name.trim()) provErrors.value.name = 'Name is required.'
+  if (!newProvider.value.email.trim()) provErrors.value.email = 'Email is required.'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(newProvider.value.email.trim())) provErrors.value.email = 'Enter a valid email address.'
+  if (!newProvider.value.phone.trim()) provErrors.value.phone = 'Phone number is required.'
+  if (!newProvider.value.region.trim()) provErrors.value.region = 'Region is required.'
+  if (!newProvider.value.type.trim()) provErrors.value.type = 'Type is required.'
+  return Object.values(provErrors.value).every(v => !v)
+}
+
+async function addProvider () {
+  if (!validateProviderForm()) {
+    if (provErrors.value.name) { provNameRef.value?.focus(); return }
+    if (provErrors.value.email) { provEmailRef.value?.focus(); return }
+    if (provErrors.value.phone) { provPhoneRef.value?.focus(); return }
+    if (provErrors.value.region) { provRegionRef.value?.focus(); return }
+    if (provErrors.value.type) { provTypeRef.value?.focus(); return }
+    return
+  }
+  try {
+    const docData = {
+      name: sanitize(newProvider.value.name.trim()),
+      email: String(newProvider.value.email).trim().toLowerCase(),
+      phone: String(newProvider.value.phone).trim(),
+      region: sanitize(newProvider.value.region.trim()),
+      type: sanitize(newProvider.value.type.trim()),
+      createdAt: serverTimestamp(),
+      createdByEmail: (userEmail.value || 'admin').toLowerCase()
+    }
+    await addDoc(collection(db, 'providers'), docData)
+    showProvCreated.value = true
+    nextTick(() => provSuccessRef.value?.focus())
+    setTimeout(() => { showProvCreated.value = false }, 2500)
+    resetProviderForm()
+  } catch (e) {
+    console.error('Failed to add provider', e)
+    provErrors.value.name = 'Could not add provider. Try again.'
+    provNameRef.value?.focus()
   }
 }
 
