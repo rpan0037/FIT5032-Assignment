@@ -20,6 +20,9 @@
           </div>
           <div class="card-body">
             <div class="d-grid gap-2">
+              <button class="btn btn-success" type="button" @click="exportHelpRequestsCSV" aria-label="Download a CSV of all help requests">
+                Export help requests (CSV)
+              </button>
               <RouterLink class="btn btn-primary" to="/events" aria-label="Go to Events to add, edit or delete events">
                 Manage events
               </RouterLink>
@@ -160,7 +163,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { currentUser } from '@/auth'
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore'
 
 function sanitize(s) {
   return String(s ?? '')
@@ -169,6 +172,68 @@ function sanitize(s) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+// ---- CSV export helpers (help-requests) ----
+function toCSV(rows) {
+  if (!rows || !rows.length) return ''
+  const headers = Array.from(rows.reduce((set, r) => {
+    Object.keys(r || {}).forEach(k => set.add(k))
+    return set
+  }, new Set()))
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const lines = [
+    headers.join(','),
+    ...rows.map(r => headers.map(h => esc(r[h])).join(','))
+  ]
+  return lines.join('\n')
+}
+function downloadCSV(csv, filename) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.setAttribute('download', filename)
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+async function exportHelpRequestsCSV() {
+  try {
+    const colRef = collection(db, 'help-requests')
+    const q = query(colRef, orderBy('createdAt', 'desc'))
+    const snap = await getDocs(q)
+    const rows = snap.docs.map(d => {
+      const data = d.data() || {}
+      const created = data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt || null)
+      const user = data.user || {}
+      const fullName = [data.firstName, data.lastName].filter(Boolean).join(' ').trim()
+      return {
+        id: d.id,
+        createdAt: created ? new Date(created).toISOString() : '',
+        status: data.status || '',
+        topic: data.topic || '',
+        details: data.details || '',
+        preferredContact: data.preferredContact || data.preferredcontact || '',
+        consent: typeof data.consent === 'boolean' ? String(data.consent) : (data.consent || ''),
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        fullName,
+        email: data.email || '',
+        phone: data.phone || '',
+        userEmail: user.email || '',
+        userName: user.name || '',
+        userUid: user.uid || ''
+      }
+    })
+    const csv = toCSV(rows)
+    const fname = `help-requests-${new Date().toISOString().slice(0,10)}.csv`
+    downloadCSV(csv, fname)
+  } catch (e) {
+    console.error('exportHelpRequestsCSV failed', e)
+    alert('Could not export help requests. Check Firestore permissions.')
+  }
 }
 
 const router = useRouter()
