@@ -1,6 +1,6 @@
 <script setup>
-import { ref, nextTick } from 'vue'
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { ref, nextTick, onMounted } from 'vue'
+import { getFirestore, collection, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { currentUser } from '@/auth.js'
 
 const formData = ref({
@@ -36,6 +36,20 @@ const topicRef = ref(null)
 const detailsRef = ref(null)
 const consentRef = ref(null)
 const successRef = ref(null)
+
+const db = getFirestore()
+const reqCount = ref(0)
+
+onMounted(async () => {
+  try {
+    const cRef = collection(db, 'help-requests')
+    const snapshot = await getCountFromServer(cRef)
+    reqCount.value = snapshot.data().count || 0
+  } catch (e) {
+    console.error('Failed to load request count', e)
+    reqCount.value = 0
+  }
+})
 
 const emailRE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const phoneRE = /^[0-9+\-()\s]{7,20}$/
@@ -373,6 +387,9 @@ async function submitForm() {
               <button type="button" class="btn btn-secondary" @click="clearForm">Clear</button>
             </div>
           </form>
+          <p class="text-muted small mt-3 text-center" aria-live="polite">
+            We’ve received <strong>{{ reqCount }}</strong> help requests so far.
+          </p>
         </div>
       </div>
     </div>

@@ -9,6 +9,10 @@ const displayName = computed(() => {
   // Prefer name; fall back to email; otherwise blank
   return u.name || u.displayName || u.email || ''
 })
+const isAdminUser = computed(() => {
+  const role = currentUser?.value?.role
+  return role.toLowerCase() === 'admin'
+})
 function handleLogout() {
   logout()
   router.push('/login')
@@ -42,6 +46,9 @@ function handleLogout() {
           </li>
           <li class="nav-item">
             <RouterLink class="nav-link" to="/about">About</RouterLink>
+          </li>
+          <li class="nav-item" v-if="isAuthenticated && isAdminUser">
+            <RouterLink class="nav-link" to="/admin">Admin</RouterLink>
           </li>
           <li class="nav-item d-flex align-items-center gap-2 ms-3" v-if="isAuthenticated">
             <span class="badge text-bg-light" aria-live="polite">Welcome, {{ displayName }}</span>

@@ -11,6 +11,7 @@ const About = () => import('../pages/AboutPage.vue')
 const Contact = () => import('../pages/ContactPage.vue')
 const Login = () => import('../pages/LoginPage.vue')
 const Register = () => import('../pages/RegisterPage.vue')
+const Admin = () => import('../pages/AdminPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,7 @@ const router = createRouter({
     { path: '/help', component: Help, name: 'Help', meta: {requiresAuth: true} },
     { path: '/about', component: About, name: 'About', meta: {requiresAuth: true} },
     { path: '/contact', component: Contact, name: 'Contact', meta: {requiresAuth: true} },
+    { path: '/admin', component: Admin, name: 'Admin', meta: { requiresAuth: true } },
     {path: '/login', component: Login, name: 'Login'},
     { path: '/register', component: Register, name: 'Register', meta: { requiresAuth: false } }
   ],
