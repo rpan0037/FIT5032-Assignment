@@ -3,7 +3,8 @@
     <h1 class="mb-3" data-page-title>Admin Dashboard</h1>
 
     <!-- Not authorized state -->
-    <div v-if="checked && !isAdmin" class="alert alert-danger" role="alert" aria-live="assertive" tabindex="-1" ref="denyRef">
+    <div v-if="checked && !isAdmin" class="alert alert-danger" role="alert" aria-live="assertive" tabindex="-1"
+      ref="denyRef">
       You don't have permission to view this page.
     </div>
 
@@ -12,31 +13,6 @@
 
     <!-- Authorized content -->
     <div v-else class="row g-3">
-
-      <section class="col-12 col-lg-6">
-        <div class="card h-100">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h2 class="h6 mb-0">Quick actions</h2>
-          </div>
-          <div class="card-body">
-            <div class="d-grid gap-2">
-              <button class="btn btn-success" type="button" @click="exportHelpRequestsCSV" aria-label="Download a CSV of all help requests">
-                Export help requests (CSV)
-              </button>
-              <RouterLink class="btn btn-primary" to="/events" aria-label="Go to Events to add, edit or delete events">
-                Manage events
-              </RouterLink>
-              <RouterLink class="btn btn-outline-primary" to="/resources" aria-label="Go to Resources to curate support links">
-                Curate resources
-              </RouterLink>
-              <RouterLink class="btn btn-outline-secondary" to="/contact" aria-label="View contact and support info">
-                Contact &amp; support info
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section class="col-12 col-lg-6">
         <div class="card h-100">
           <div class="card-header">
@@ -49,6 +25,62 @@
           </div>
         </div>
       </section>
+      <section class="col-12 col-lg-6">
+        <div class="card h-100">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h6 mb-0">Quick actions</h2>
+          </div>
+          <div class="card-body">
+            <div class="d-grid gap-2">
+              <button class="btn btn-success" type="button" @click="exportHelpRequestsCSV"
+                aria-label="Download a CSV of all help requests">
+                Export help requests (CSV)
+              </button>
+              <button class="btn btn-warning" type="button" @click="showBulk = !showBulk"
+                :aria-expanded="showBulk ? 'true' : 'false'" aria-controls="bulk-email-form">
+                Email all users
+              </button>
+              <RouterLink class="btn btn-primary" to="/events" aria-label="Go to Events to add, edit or delete events">
+                Manage events
+              </RouterLink>
+              <RouterLink class="btn btn-outline-primary" to="/resources"
+                aria-label="Go to Resources to curate support links">
+                Curate resources
+              </RouterLink>
+              <RouterLink class="btn btn-outline-secondary" to="/contact" aria-label="View contact and support info">
+                Contact &amp; support info
+              </RouterLink>
+            </div>
+            <div v-if="showBulk" id="bulk-email-form" class="mt-3">
+              <div class="alert alert-info small" role="status">
+                This will email <strong>all users</strong> who have registered with us.
+              </div>
+              <div v-if="bulkError" class="alert alert-danger" role="alert" aria-live="assertive">{{ bulkError }}</div>
+              <div v-if="bulkResult" class="alert alert-success" role="alert" aria-live="assertive" tabindex="-1"
+                ref="bulkSuccessRef">
+                {{ bulkResult }}
+              </div>
+              <div class="mb-2">
+                <label for="bulk-subject" class="form-label">Subject</label>
+                <input id="bulk-subject" type="text" class="form-control" v-model.trim="bulkSubject"
+                  placeholder="e.g., New events this month" />
+              </div>
+              <div class="mb-2">
+                <label for="bulk-message" class="form-label">Message</label>
+                <textarea id="bulk-message" class="form-control" rows="4" v-model.trim="bulkMessage"
+                  placeholder="Write your announcement…"></textarea>
+                <div class="form-text">Basic formatting supported. New lines will be preserved.</div>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary" :disabled="bulkSending" @click="sendBulkEmail">
+                  {{ bulkSending ? 'Sending…' : 'Send to all users' }}
+                </button>
+                <button class="btn btn-outline-secondary" type="button" @click="showBulk = false">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section class="col-12">
         <div class="card h-100">
@@ -56,14 +88,8 @@
             <h2 class="h6 mb-0">Create New Event</h2>
           </div>
           <div class="card-body">
-            <div
-              v-if="showCreated"
-              class="alert alert-success"
-              role="alert"
-              aria-live="assertive"
-              tabindex="-1"
-              ref="evSuccessRef"
-            >
+            <div v-if="showCreated" class="alert alert-success" role="alert" aria-live="assertive" tabindex="-1"
+              ref="evSuccessRef">
               Event created successfully.
             </div>
 
@@ -71,79 +97,52 @@
               <div class="row g-3">
                 <div class="col-12 col-md-6">
                   <label for="ev-title" class="form-label">Title</label>
-                  <input
-                    id="ev-title"
-                    ref="evTitleRef"
-                    type="text"
-                    class="form-control"
-                    v-model.trim="newEvent.title"
-                    required
-                    :aria-invalid="evErrors.title ? 'true' : 'false'"
+                  <input id="ev-title" ref="evTitleRef" type="text" class="form-control" v-model.trim="newEvent.title"
+                    required :aria-invalid="evErrors.title ? 'true' : 'false'"
                     :aria-describedby="evErrors.title ? 'err-ev-title' : null"
-                    placeholder="e.g., Study Stress Workshop"
-                  />
-                  <div v-if="evErrors.title" id="err-ev-title" class="text-danger small mt-1" role="alert">{{ evErrors.title }}</div>
+                    placeholder="e.g., Study Stress Workshop" />
+                  <div v-if="evErrors.title" id="err-ev-title" class="text-danger small mt-1" role="alert">{{
+                    evErrors.title }}</div>
                 </div>
 
                 <div class="col-12 col-md-6">
                   <label for="ev-datetime" class="form-label">Date &amp; Time</label>
-                  <input
-                    id="ev-datetime"
-                    ref="evDateRef"
-                    type="datetime-local"
-                    class="form-control"
-                    v-model="newEvent.datetime"
-                    required
-                    :aria-invalid="evErrors.datetime ? 'true' : 'false'"
-                    :aria-describedby="evErrors.datetime ? 'err-ev-datetime' : null"
-                  />
-                  <div v-if="evErrors.datetime" id="err-ev-datetime" class="text-danger small mt-1" role="alert">{{ evErrors.datetime }}</div>
+                  <input id="ev-datetime" ref="evDateRef" type="datetime-local" class="form-control"
+                    v-model="newEvent.datetime" required :aria-invalid="evErrors.datetime ? 'true' : 'false'"
+                    :aria-describedby="evErrors.datetime ? 'err-ev-datetime' : null" />
+                  <div v-if="evErrors.datetime" id="err-ev-datetime" class="text-danger small mt-1" role="alert">{{
+                    evErrors.datetime }}</div>
                 </div>
 
                 <div class="col-12">
                   <label for="ev-desc" class="form-label">Description (optional)</label>
-                  <textarea
-                    id="ev-desc"
-                    class="form-control"
-                    rows="2"
-                    v-model.trim="newEvent.description"
-                    placeholder="Brief details..."
-                  ></textarea>
+                  <textarea id="ev-desc" class="form-control" rows="2" v-model.trim="newEvent.description"
+                    placeholder="Brief details..."></textarea>
                 </div>
 
                 <div class="col-12 col-md-6">
                   <label for="ev-mode" class="form-label">Mode</label>
-                  <select
-                    id="ev-mode"
-                    ref="evModeRef"
-                    class="form-select"
-                    v-model="newEvent.mode"
-                    required
+                  <select id="ev-mode" ref="evModeRef" class="form-select" v-model="newEvent.mode" required
                     :aria-invalid="evErrors.mode ? 'true' : 'false'"
-                    :aria-describedby="evErrors.mode ? 'err-ev-mode' : null"
-                  >
+                    :aria-describedby="evErrors.mode ? 'err-ev-mode' : null">
                     <option>Online</option>
                     <option>In-person</option>
                     <option>Hybrid</option>
                   </select>
-                  <div v-if="evErrors.mode" id="err-ev-mode" class="text-danger small mt-1" role="alert">{{ evErrors.mode }}</div>
+                  <div v-if="evErrors.mode" id="err-ev-mode" class="text-danger small mt-1" role="alert">{{
+                    evErrors.mode }}</div>
                 </div>
 
                 <div class="col-12 col-md-6">
                   <label for="ev-location" class="form-label">Location</label>
-                  <input
-                    id="ev-location"
-                    ref="evLocationRef"
-                    type="text"
-                    class="form-control"
-                    v-model.trim="newEvent.location"
-                    required
-                    :aria-invalid="evErrors.location ? 'true' : 'false'"
+                  <input id="ev-location" ref="evLocationRef" type="text" class="form-control"
+                    v-model.trim="newEvent.location" required :aria-invalid="evErrors.location ? 'true' : 'false'"
                     :aria-describedby="evErrors.location ? 'err-ev-location' : 'ev-location-help'"
-                    placeholder="e.g., Monash University, Clayton or Zoom"
-                  />
-                  <div id="ev-location-help" class="form-text">Enter the exact text you want to appear in the map search and Google Maps directions.</div>
-                  <div v-if="evErrors.location" id="err-ev-location" class="text-danger small mt-1" role="alert">{{ evErrors.location }}</div>
+                    placeholder="e.g., Monash University, Clayton or Zoom" />
+                  <div id="ev-location-help" class="form-text">Enter the exact text you want to appear in the map search
+                    and Google Maps directions.</div>
+                  <div v-if="evErrors.location" id="err-ev-location" class="text-danger small mt-1" role="alert">{{
+                    evErrors.location }}</div>
                 </div>
               </div>
 
@@ -162,50 +161,50 @@
             <h2 class="h6 mb-0">Add Resource</h2>
           </div>
           <div class="card-body">
-            <div
-              v-if="showResCreated"
-              class="alert alert-success"
-              role="alert"
-              aria-live="assertive"
-              tabindex="-1"
-              ref="resSuccessRef"
-            >
+            <div v-if="showResCreated" class="alert alert-success" role="alert" aria-live="assertive" tabindex="-1"
+              ref="resSuccessRef">
               Resource added successfully.
             </div>
             <form @submit.prevent="addResource" novalidate>
               <div class="row g-3">
                 <div class="col-12 col-md-6">
                   <label for="res-title" class="form-label">Title</label>
-                  <input id="res-title" ref="resTitleRef" type="text" class="form-control" v-model.trim="newResource.title"
-                    required :aria-invalid="resErrors.title ? 'true' : 'false'"
+                  <input id="res-title" ref="resTitleRef" type="text" class="form-control"
+                    v-model.trim="newResource.title" required :aria-invalid="resErrors.title ? 'true' : 'false'"
                     :aria-describedby="resErrors.title ? 'err-res-title' : null" />
-                  <div v-if="resErrors.title" id="err-res-title" class="text-danger small mt-1" role="alert">{{ resErrors.title }}</div>
+                  <div v-if="resErrors.title" id="err-res-title" class="text-danger small mt-1" role="alert">{{
+                    resErrors.title }}</div>
                 </div>
                 <div class="col-12 col-md-6">
                   <label for="res-url" class="form-label">URL</label>
                   <input id="res-url" ref="resUrlRef" type="url" class="form-control" v-model.trim="newResource.url"
                     placeholder="https://…" required :aria-invalid="resErrors.url ? 'true' : 'false'"
                     :aria-describedby="resErrors.url ? 'err-res-url' : null" />
-                  <div v-if="resErrors.url" id="err-res-url" class="text-danger small mt-1" role="alert">{{ resErrors.url }}</div>
+                  <div v-if="resErrors.url" id="err-res-url" class="text-danger small mt-1" role="alert">{{
+                    resErrors.url }}</div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label for="res-audience" class="form-label">Audience</label>
-                  <input id="res-audience" ref="resAudienceRef" type="text" class="form-control" v-model.trim="newResource.audience"
-                    placeholder="e.g., Youth" required :aria-invalid="resErrors.audience ? 'true' : 'false'"
+                  <input id="res-audience" ref="resAudienceRef" type="text" class="form-control"
+                    v-model.trim="newResource.audience" placeholder="e.g., Youth" required
+                    :aria-invalid="resErrors.audience ? 'true' : 'false'"
                     :aria-describedby="resErrors.audience ? 'err-res-audience' : null" />
-                  <div v-if="resErrors.audience" id="err-res-audience" class="text-danger small mt-1" role="alert">{{ resErrors.audience }}</div>
+                  <div v-if="resErrors.audience" id="err-res-audience" class="text-danger small mt-1" role="alert">{{
+                    resErrors.audience }}</div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label for="res-topic" class="form-label">Topic</label>
-                  <input id="res-topic" ref="resTopicRef" type="text" class="form-control" v-model.trim="newResource.topic"
-                    placeholder="e.g., Sleep" required :aria-invalid="resErrors.topic ? 'true' : 'false'"
+                  <input id="res-topic" ref="resTopicRef" type="text" class="form-control"
+                    v-model.trim="newResource.topic" placeholder="e.g., Sleep" required
+                    :aria-invalid="resErrors.topic ? 'true' : 'false'"
                     :aria-describedby="resErrors.topic ? 'err-res-topic' : null" />
-                  <div v-if="resErrors.topic" id="err-res-topic" class="text-danger small mt-1" role="alert">{{ resErrors.topic }}</div>
+                  <div v-if="resErrors.topic" id="err-res-topic" class="text-danger small mt-1" role="alert">{{
+                    resErrors.topic }}</div>
                 </div>
                 <div class="col-12 col-md-4">
                   <label for="res-format" class="form-label">Format</label>
-                  <select id="res-format" ref="resFormatRef" class="form-select" v-model="newResource.format"
-                    required :aria-invalid="resErrors.format ? 'true' : 'false'"
+                  <select id="res-format" ref="resFormatRef" class="form-select" v-model="newResource.format" required
+                    :aria-invalid="resErrors.format ? 'true' : 'false'"
                     :aria-describedby="resErrors.format ? 'err-res-format' : null">
                     <option>Article</option>
                     <option>Video</option>
@@ -213,7 +212,8 @@
                     <option>Website</option>
                     <option>Guide</option>
                   </select>
-                  <div v-if="resErrors.format" id="err-res-format" class="text-danger small mt-1" role="alert">{{ resErrors.format }}</div>
+                  <div v-if="resErrors.format" id="err-res-format" class="text-danger small mt-1" role="alert">{{
+                    resErrors.format }}</div>
                 </div>
               </div>
               <div class="mt-3 d-flex gap-2">
@@ -225,71 +225,72 @@
         </div>
       </section>
       <section class="col-12">
-  <div class="card h-100">
-    <div class="card-header">
-      <h2 class="h6 mb-0">Add Provider</h2>
-    </div>
-    <div class="card-body">
-      <div
-        v-if="showProvCreated"
-        class="alert alert-success"
-        role="alert"
-        aria-live="assertive"
-        tabindex="-1"
-        ref="provSuccessRef"
-      >
-        Provider added successfully.
-      </div>
-      <form @submit.prevent="addProvider" novalidate>
-        <div class="row g-3">
-          <div class="col-12 col-md-6">
-            <label for="prov-name" class="form-label">Name</label>
-            <input id="prov-name" ref="provNameRef" type="text" class="form-control" v-model.trim="newProvider.name"
-              required :aria-invalid="provErrors.name ? 'true' : 'false'"
-              :aria-describedby="provErrors.name ? 'err-prov-name' : null" />
-            <div v-if="provErrors.name" id="err-prov-name" class="text-danger small mt-1" role="alert">{{ provErrors.name }}</div>
+        <div class="card h-100">
+          <div class="card-header">
+            <h2 class="h6 mb-0">Add Provider</h2>
           </div>
+          <div class="card-body">
+            <div v-if="showProvCreated" class="alert alert-success" role="alert" aria-live="assertive" tabindex="-1"
+              ref="provSuccessRef">
+              Provider added successfully.
+            </div>
+            <form @submit.prevent="addProvider" novalidate>
+              <div class="row g-3">
+                <div class="col-12 col-md-6">
+                  <label for="prov-name" class="form-label">Name</label>
+                  <input id="prov-name" ref="provNameRef" type="text" class="form-control"
+                    v-model.trim="newProvider.name" required :aria-invalid="provErrors.name ? 'true' : 'false'"
+                    :aria-describedby="provErrors.name ? 'err-prov-name' : null" />
+                  <div v-if="provErrors.name" id="err-prov-name" class="text-danger small mt-1" role="alert">{{
+                    provErrors.name }}</div>
+                </div>
 
-          <div class="col-12 col-md-6">
-            <label for="prov-email" class="form-label">Email</label>
-            <input id="prov-email" ref="provEmailRef" type="email" class="form-control" v-model.trim="newProvider.email"
-              required :aria-invalid="provErrors.email ? 'true' : 'false'"
-              :aria-describedby="provErrors.email ? 'err-prov-email' : null" />
-            <div v-if="provErrors.email" id="err-prov-email" class="text-danger small mt-1" role="alert">{{ provErrors.email }}</div>
-          </div>
+                <div class="col-12 col-md-6">
+                  <label for="prov-email" class="form-label">Email</label>
+                  <input id="prov-email" ref="provEmailRef" type="email" class="form-control"
+                    v-model.trim="newProvider.email" required :aria-invalid="provErrors.email ? 'true' : 'false'"
+                    :aria-describedby="provErrors.email ? 'err-prov-email' : null" />
+                  <div v-if="provErrors.email" id="err-prov-email" class="text-danger small mt-1" role="alert">{{
+                    provErrors.email }}</div>
+                </div>
 
-          <div class="col-12 col-md-4">
-            <label for="prov-phone" class="form-label">Phone</label>
-            <input id="prov-phone" ref="provPhoneRef" type="text" class="form-control" v-model.trim="newProvider.phone"
-              required :aria-invalid="provErrors.phone ? 'true' : 'false'"
-              :aria-describedby="provErrors.phone ? 'err-prov-phone' : null" />
-            <div v-if="provErrors.phone" id="err-prov-phone" class="text-danger small mt-1" role="alert">{{ provErrors.phone }}</div>
-          </div>
+                <div class="col-12 col-md-4">
+                  <label for="prov-phone" class="form-label">Phone</label>
+                  <input id="prov-phone" ref="provPhoneRef" type="text" class="form-control"
+                    v-model.trim="newProvider.phone" required :aria-invalid="provErrors.phone ? 'true' : 'false'"
+                    :aria-describedby="provErrors.phone ? 'err-prov-phone' : null" />
+                  <div v-if="provErrors.phone" id="err-prov-phone" class="text-danger small mt-1" role="alert">{{
+                    provErrors.phone }}</div>
+                </div>
 
-          <div class="col-12 col-md-4">
-            <label for="prov-region" class="form-label">Region</label>
-            <input id="prov-region" ref="provRegionRef" type="text" class="form-control" v-model.trim="newProvider.region"
-              placeholder="e.g., Melbourne" required :aria-invalid="provErrors.region ? 'true' : 'false'"
-              :aria-describedby="provErrors.region ? 'err-prov-region' : null" />
-            <div v-if="provErrors.region" id="err-prov-region" class="text-danger small mt-1" role="alert">{{ provErrors.region }}</div>
-          </div>
+                <div class="col-12 col-md-4">
+                  <label for="prov-region" class="form-label">Region</label>
+                  <input id="prov-region" ref="provRegionRef" type="text" class="form-control"
+                    v-model.trim="newProvider.region" placeholder="e.g., Melbourne" required
+                    :aria-invalid="provErrors.region ? 'true' : 'false'"
+                    :aria-describedby="provErrors.region ? 'err-prov-region' : null" />
+                  <div v-if="provErrors.region" id="err-prov-region" class="text-danger small mt-1" role="alert">{{
+                    provErrors.region }}</div>
+                </div>
 
-          <div class="col-12 col-md-4">
-            <label for="prov-type" class="form-label">Type</label>
-            <input id="prov-type" ref="provTypeRef" type="text" class="form-control" v-model.trim="newProvider.type"
-              placeholder="e.g., Counsellor" required :aria-invalid="provErrors.type ? 'true' : 'false'"
-              :aria-describedby="provErrors.type ? 'err-prov-type' : null" />
-            <div v-if="provErrors.type" id="err-prov-type" class="text-danger small mt-1" role="alert">{{ provErrors.type }}</div>
+                <div class="col-12 col-md-4">
+                  <label for="prov-type" class="form-label">Type</label>
+                  <input id="prov-type" ref="provTypeRef" type="text" class="form-control"
+                    v-model.trim="newProvider.type" placeholder="e.g., Counsellor" required
+                    :aria-invalid="provErrors.type ? 'true' : 'false'"
+                    :aria-describedby="provErrors.type ? 'err-prov-type' : null" />
+                  <div v-if="provErrors.type" id="err-prov-type" class="text-danger small mt-1" role="alert">{{
+                    provErrors.type }}</div>
+                </div>
+              </div>
+              <div class="mt-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Add Provider</button>
+                <button type="button" class="btn btn-outline-secondary" @click="resetProviderForm">Clear</button>
+              </div>
+            </form>
           </div>
         </div>
-        <div class="mt-3 d-flex gap-2">
-          <button type="submit" class="btn btn-primary">Add Provider</button>
-          <button type="button" class="btn btn-outline-secondary" @click="resetProviderForm">Clear</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</section>
+      </section>
     </div>
   </main>
 </template>
@@ -299,6 +300,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { currentUser } from '@/auth'
 import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore'
+import { getFunctions, httpsCallable } from 'firebase/functions'
 
 function sanitize(s) {
   return String(s ?? '')
@@ -363,7 +365,7 @@ async function exportHelpRequestsCSV() {
       }
     })
     const csv = toCSV(rows)
-    const fname = `help-requests-${new Date().toISOString().slice(0,10)}.csv`
+    const fname = `help-requests-${new Date().toISOString().slice(0, 10)}.csv`
     downloadCSV(csv, fname)
   } catch (e) {
     console.error('exportHelpRequestsCSV failed', e)
@@ -377,6 +379,51 @@ const checked = ref(false)
 
 // Firestore
 const db = getFirestore()
+const functions = getFunctions(undefined, 'australia-southeast1')
+// ---- Bulk email (Quick actions) ----
+const showBulk = ref(false)
+const bulkSubject = ref('')
+const bulkMessage = ref('')
+const bulkSending = ref(false)
+const bulkResult = ref('')
+const bulkError = ref('')
+const bulkSuccessRef = ref(null)
+
+async function sendBulkEmail() {
+  bulkError.value = ''
+  bulkResult.value = ''
+  if (!bulkSubject.value.trim()) { bulkError.value = 'Subject is required.'; return }
+  if (!bulkMessage.value.trim()) { bulkError.value = 'Message is required.'; return }
+  try {
+    bulkSending.value = true
+    const callable = httpsCallable(functions, 'sendBulkEmail')
+    const res = await callable({
+      subject: bulkSubject.value.trim(),
+      text: bulkMessage.value.trim(),
+      html: `<p>${bulkMessage.value.trim().replace(/\n/g, '<br>')}</p>`
+    })
+    const data = res?.data || {}
+    if (data.ok) {
+      bulkResult.value = `Sent email successfully.`
+      bulkSubject.value = ''
+      bulkMessage.value = ''
+      // Keep the form open briefly to show success, then hide
+      await nextTick()
+      bulkSuccessRef.value && bulkSuccessRef.value.focus()
+      setTimeout(() => {
+        showBulk.value = false
+        bulkResult.value = ''
+      }, 2500)
+    } else {
+      bulkError.value = data.error || 'Bulk send failed.'
+    }
+  } catch (e) {
+    console.error('sendBulkEmail failed', e)
+    bulkError.value = 'Could not send bulk email. Check Cloud Function deployment & permissions.'
+  } finally {
+    bulkSending.value = false
+  }
+}
 
 // Admin: create event form state
 const newEvent = ref({
@@ -466,11 +513,11 @@ const resFormatRef = ref(null)
 const resSuccessRef = ref(null)
 const showResCreated = ref(false)
 
-function resetResourceForm () {
+function resetResourceForm() {
   newResource.value = { title: '', url: '', audience: '', topic: '', format: 'Article' }
   resErrors.value = { title: '', url: '', audience: '', topic: '', format: '' }
 }
-function validateResourceForm () {
+function validateResourceForm() {
   resErrors.value = { title: '', url: '', audience: '', topic: '', format: '' }
   if (!newResource.value.title.trim()) resErrors.value.title = 'Title is required.'
   const url = String(newResource.value.url || '').trim()
@@ -481,7 +528,7 @@ function validateResourceForm () {
   if (!newResource.value.format.trim()) resErrors.value.format = 'Format is required.'
   return Object.values(resErrors.value).every(v => !v)
 }
-async function addResource () {
+async function addResource() {
   if (!validateResourceForm()) {
     if (resErrors.value.title) { resTitleRef.value?.focus(); return }
     if (resErrors.value.url) { resUrlRef.value?.focus(); return }
@@ -529,12 +576,12 @@ const provTypeRef = ref(null)
 const provSuccessRef = ref(null)
 const showProvCreated = ref(false)
 
-function resetProviderForm () {
+function resetProviderForm() {
   newProvider.value = { name: '', email: '', phone: '', region: '', type: '' }
   provErrors.value = { name: '', email: '', phone: '', region: '', type: '' }
 }
 
-function validateProviderForm () {
+function validateProviderForm() {
   provErrors.value = { name: '', email: '', phone: '', region: '', type: '' }
   if (!newProvider.value.name.trim()) provErrors.value.name = 'Name is required.'
   if (!newProvider.value.email.trim()) provErrors.value.email = 'Email is required.'
@@ -545,7 +592,7 @@ function validateProviderForm () {
   return Object.values(provErrors.value).every(v => !v)
 }
 
-async function addProvider () {
+async function addProvider() {
   if (!validateProviderForm()) {
     if (provErrors.value.name) { provNameRef.value?.focus(); return }
     if (provErrors.value.email) { provEmailRef.value?.focus(); return }

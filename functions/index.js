@@ -1,16 +1,16 @@
-import { onRequest } from "firebase-functions/v2/https";
+import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { initializeApp, getApps } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import sgMail from "@sendgrid/mail";
 import corsPkg from "cors";
 
-const cors = corsPkg({ origin: true }); // you can restrict later
+const cors = corsPkg({ origin: true }); 
 const SENDGRID_API_KEY = defineSecret("SENDGRID_API_KEY");
 const SENDGRID_FROM = defineSecret("SENDGRID_FROM");
 
 if (!getApps().length) initializeApp();
 
-// Automatically sends to the logged-in user's email if authenticated; falls back to provided "to"
 export const sendEmail = onRequest(
   {
     region: "australia-southeast1",
@@ -58,5 +58,49 @@ export const sendEmail = onRequest(
         return res.status(500).json({ ok: false, error: reason });
       }
     });
+  }
+);
+
+export const sendBulkEmail = onCall(
+  {
+    region: "australia-southeast1",
+    secrets: [SENDGRID_API_KEY, SENDGRID_FROM]
+  },
+  async (request) => {
+
+    const subject = String(request.data?.subject || "").trim();
+    const text = String(request.data?.text || "").trim();
+    const html = String(request.data?.html || "").trim();
+    if (!subject || !text) {
+      throw new HttpsError("invalid-argument", "Subject and message are required");
+    }
+
+    // Init SendGrid
+    sgMail.setApiKey(SENDGRID_API_KEY.value());
+
+    // Fetch recipients from Firestore
+    const db = getFirestore();
+    const snap = await db.collection("user-role").get();
+    const emails = snap.docs
+      .map((d) => String(d.data()?.email || "").toLowerCase())
+      .filter((e) => e && e.includes("@"));
+
+    const unique = Array.from(new Set(emails));
+    if (unique.length === 0) {
+      return { ok: true, sent: 0 };
+    }
+
+    const from = { email: SENDGRID_FROM.value(), name: "Youth Health" };
+    const chunkSize = 100;
+    let sent = 0;
+
+    for (let i = 0; i < unique.length; i += chunkSize) {
+      const chunk = unique.slice(i, i + chunkSize);
+      const msgs = chunk.map((to) => ({ to, from, subject, text, html }));
+      await sgMail.send(msgs, { batch: true });
+      sent += chunk.length;
+    }
+
+    return { ok: true, sent };
   }
 );
